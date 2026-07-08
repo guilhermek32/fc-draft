@@ -1,0 +1,23 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Streamlit config / state
+draft_state.json
+image_cache/
+test_app.py
+test_render.py
+test_st.py
+extract_css.py
+test_reconstruct.py
+test_style.py
+pitch_css.txt
+*.txt
+!requirements.txt
