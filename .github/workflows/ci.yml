@@ -33,3 +33,7 @@ jobs:
     - name: Verify Python Compilation
       run: |
         python -m py_compile app.py
+
+    - name: Run Tests
+      run: |
+        pytest -v
