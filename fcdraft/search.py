@@ -6,14 +6,18 @@ from fcdraft.config import DEFAULT_MIN_OVR, FLEXIBLE_POSITIONS
 from fcdraft.data import load_data
 
 
-def get_excluded_ids():
-    """Ids of every already-drafted or banned player."""
-    excluded = set()
+def get_drafted_ids():
+    """Ids of every already-drafted player."""
+    drafted = set()
     for participant_squad in st.session_state.drafted_players.values():
         for player in participant_squad.values():
-            excluded.add(player["player_id"])
-    excluded.update(st.session_state.banned_player_ids)
-    return excluded
+            drafted.add(player["player_id"])
+    return drafted
+
+
+def get_excluded_ids():
+    """Ids of every already-drafted or banned player (undraftable pool)."""
+    return get_drafted_ids() | set(st.session_state.banned_player_ids)
 
 
 def allowed_positions(position_filter, filter_mode):
@@ -23,18 +27,20 @@ def allowed_positions(position_filter, filter_mode):
 
 
 def search_players(query="", position_filter=None, filter_mode="Strict"):
-    """Available (not drafted/banned) players matching the position and text filters.
+    """Available players matching the position and text filters.
 
+    Drafted players are excluded; banned players are kept but flagged in an
+    ``is_banned`` column so the UI can gray them out (they remain undraftable).
     Results are sorted by overall rating descending (the database is pre-sorted).
     """
     df = load_data()
     if df.empty:
-        return df
+        return df.assign(is_banned=False) if "is_banned" not in df.columns else df
     mask = None
 
-    excluded = get_excluded_ids()
-    if excluded:
-        mask = ~df["player_id"].isin(excluded)
+    drafted = get_drafted_ids()
+    if drafted:
+        mask = ~df["player_id"].isin(drafted)
 
     if position_filter and position_filter != "SUB":
         allowed = frozenset(allowed_positions(position_filter, filter_mode))
@@ -49,12 +55,17 @@ def search_players(query="", position_filter=None, filter_mode="Strict"):
         ovr_mask = df["overall"] >= DEFAULT_MIN_OVR
         mask = ovr_mask if mask is None else mask & ovr_mask
 
-    return df[mask] if mask is not None else df
+    results = df[mask] if mask is not None else df
+    banned = set(st.session_state.banned_player_ids)
+    return results.assign(is_banned=results["player_id"].isin(banned) if banned else False)
 
 
 def format_player_options(df):
     """Selectbox labels for a search-result frame, preserving row order."""
+    has_banned = "is_banned" in df.columns
+    cols = ["short_name", "overall", "player_positions", "club_name"] + (["is_banned"] if has_banned else [])
     return [
         f"{r['short_name']} ({r['overall']} OVR | {r['player_positions']} | {r['club_name']})"
-        for r in df[["short_name", "overall", "player_positions", "club_name"]].to_dict("records")
+        + (" 🚫 BANNED" if has_banned and r["is_banned"] else "")
+        for r in df[cols].to_dict("records")
     ]

@@ -42,7 +42,7 @@ def _json_safe_player(player):
     return {
         k: (sorted(v) if isinstance(v, (set, frozenset)) else v)
         for k, v in player.items()
-        if k not in ("pos_set", "search_blob")
+        if k not in ("pos_set", "search_blob", "is_banned")
     }
 
 

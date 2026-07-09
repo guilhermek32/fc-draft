@@ -54,18 +54,21 @@ def render_empty_card(slot, interactive=False):
 
 def render_preview_card(player, pos_label, width, height, padding,
                         rating_size, pos_size, face_size, name_size, club_size,
-                        rating_padding="1px 4px", border_radius="", margin_bottom="10px"):
+                        rating_padding="1px 4px", border_radius="", margin_bottom="10px",
+                        banned=False):
     """Enlarged, centered preview card (draft dialog and draft-room profile pane)."""
     ovr = player.get("overall", 50)
     radius_style = f" border-radius: {border_radius};" if border_radius else ""
+    face_style = " filter: grayscale(1) brightness(0.55);" if banned else ""
+    card_style = " opacity: 0.75; border-color: #b71c1c;" if banned else ""
     return f"""
     <div style="display: flex; justify-content: center; margin-bottom: {margin_bottom};">
-        <div class="player-card {ovr_tier_class(ovr)}" style="width: {width}px; height: {height}px; padding: {padding}px;{radius_style}">
+        <div class="player-card {ovr_tier_class(ovr)}" style="width: {width}px; height: {height}px; padding: {padding}px;{radius_style}{card_style}">
             <div class="card-rating-pos" style="font-size: {rating_size + 2}px;">
                 <span class="card-rating" style="font-size: {rating_size}px; padding: {rating_padding};">{ovr}</span>
                 <span class="card-pos" style="font-size: {pos_size}px;">{pos_label}</span>
             </div>
-            <img class="card-face" src="{player_face_data_uri(player)}" style="width: {face_size}px; height: {face_size}px;" referrerpolicy="no-referrer">
+            <img class="card-face" src="{player_face_data_uri(player)}" style="width: {face_size}px; height: {face_size}px;{face_style}" referrerpolicy="no-referrer">
             <div class="card-name" style="font-size: {name_size}px; margin-top: 4px;">{player['short_name']}</div>
             <div class="card-club" style="font-size: {club_size}px;">{player['club_name']}</div>
         </div>

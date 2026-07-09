@@ -48,3 +48,23 @@ def test_search_players_flexible_position():
             lb_found = True
             break
     assert lb_found, "Flexible mode should return LB players for LWB filter"
+
+def test_search_keeps_banned_players_flagged(mock_streamlit_state):
+    """Banned players stay in search results, flagged and labeled, but drafted ones disappear."""
+    df = app.load_data()
+    banned_id = str(df.iloc[0]["player_id"])
+    drafted = df.iloc[1].to_dict()
+    mock_streamlit_state["banned_player_ids"] = {banned_id}
+    mock_streamlit_state["drafted_players"] = {"Alice": {"ST": drafted}}
+
+    results = app.search_players(query=df.iloc[0]["short_name"])
+    assert banned_id in set(results["player_id"]), "banned player must remain searchable"
+    row = results[results["player_id"] == banned_id].iloc[0]
+    assert bool(row["is_banned"])
+
+    from fcdraft.search import format_player_options
+    labels = format_player_options(results)
+    assert any("🚫 BANNED" in l for l in labels)
+
+    results2 = app.search_players(query=drafted["short_name"])
+    assert drafted["player_id"] not in set(results2["player_id"]), "drafted player must be excluded"

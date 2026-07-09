@@ -156,7 +156,9 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
                 p_dict = df_pool.iloc[idx].to_dict()
 
         st.write(" ")
-        if p_dict:
+        if p_dict and p_dict.get("is_banned"):
+            st.error(f"🚫 {p_dict['short_name']} was banned from this draft and cannot be drafted.")
+        elif p_dict:
             if st.button(f"✅ Draft {p_dict['short_name']} for {selected_slot}", type="primary", use_container_width=True):
                 record_pick(picker, selected_slot, p_dict, curr_idx + 1, current_pick["round"])
                 st.session_state.current_pick_index += 1
@@ -171,7 +173,10 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
                 p_dict, base_pos, width=140, height=210, padding=12,
                 rating_size=13, pos_size=14, face_size=90, name_size=14, club_size=10,
                 rating_padding="2px 6px", margin_bottom="15px",
+                banned=bool(p_dict.get("is_banned")),
             ), unsafe_allow_html=True)
+            if p_dict.get("is_banned"):
+                st.warning("🚫 This player was **banned** during the blind ban phase.")
             _render_stat_grid(p_dict)
         else:
             st.info("Select a player from the dropdown to see their detailed profile here.")

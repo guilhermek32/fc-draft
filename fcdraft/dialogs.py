@@ -35,10 +35,12 @@ def draft_player_dialog(slot, picker):
         st.html(render_preview_card(
             p_dict, base_pos, width=120, height=180, padding=10,
             rating_size=11, pos_size=12, face_size=70, name_size=12, club_size=9,
-            border_radius="8px",
+            border_radius="8px", banned=bool(p_dict.get("is_banned")),
         ))
 
-        if st.button("✅ Confirm Draft", type="primary", use_container_width=True):
+        if p_dict.get("is_banned"):
+            st.error(f"🚫 {p_dict['short_name']} was banned from this draft and cannot be drafted.")
+        elif st.button("✅ Confirm Draft", type="primary", use_container_width=True):
             curr_idx = st.session_state.current_pick_index
             current_pick = st.session_state.draft_sequence[curr_idx]
             record_pick(picker, slot, p_dict, curr_idx + 1, current_pick["round"])
