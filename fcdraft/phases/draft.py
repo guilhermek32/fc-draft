@@ -6,7 +6,7 @@ from fcdraft.draft import auto_draft_remaining, record_pick
 from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.phases.ban import _ranked_bans
 from fcdraft.pitch import display_pitch_component
-from fcdraft.search import format_player_options, search_players
+from fcdraft.search import format_player_options, get_ban_counts, search_players
 from fcdraft.cards import render_preview_card
 from fcdraft.state import save_session_state
 
@@ -82,7 +82,8 @@ def _render_sidebar(curr_idx, seq):
         all_bans = _ranked_bans()
         if all_bans:
             for rk, b in enumerate(all_bans, 1):
-                st.write(f"{rk}. **{b['short_name']}** ({b['overall']} OVR) — Banned by *{b['banned_by']}*")
+                count = f" ×{b['ban_count']}" if b["ban_count"] > 1 else ""
+                st.write(f"{rk}. **{b['short_name']}** ({b['overall']} OVR){count} — Banned by *{b['banned_by']}*")
         else:
             st.write("No bans submitted.")
 
@@ -157,7 +158,9 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
 
         st.write(" ")
         if p_dict and p_dict.get("is_banned"):
-            st.error(f"🚫 {p_dict['short_name']} was banned from this draft and cannot be drafted.")
+            count = get_ban_counts().get(str(p_dict["player_id"]), 1)
+            times = f"{count} times" if count > 1 else "once"
+            st.error(f"🚫 {p_dict['short_name']} was banned {times} in this draft and cannot be drafted.")
         elif p_dict:
             if st.button(f"✅ Draft {p_dict['short_name']} for {selected_slot}", type="primary", use_container_width=True):
                 record_pick(picker, selected_slot, p_dict, curr_idx + 1, current_pick["round"])
@@ -176,7 +179,9 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
                 banned=bool(p_dict.get("is_banned")),
             ), unsafe_allow_html=True)
             if p_dict.get("is_banned"):
-                st.warning("🚫 This player was **banned** during the blind ban phase.")
+                count = get_ban_counts().get(str(p_dict["player_id"]), 1)
+                by = f"by **{count} participants**" if count > 1 else "by **1 participant**"
+                st.warning(f"🚫 This player was **banned** {by} during the blind ban phase.")
             _render_stat_grid(p_dict)
         else:
             st.info("Select a player from the dropdown to see their detailed profile here.")

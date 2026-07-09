@@ -20,6 +20,16 @@ def get_excluded_ids():
     return get_drafted_ids() | set(st.session_state.banned_player_ids)
 
 
+def get_ban_counts():
+    """How many participants banned each player: {player_id: count}."""
+    counts = {}
+    for player_list in st.session_state.get("bans", {}).values():
+        for p in player_list:
+            pid = str(p["player_id"])
+            counts[pid] = counts.get(pid, 0) + 1
+    return counts
+
+
 def allowed_positions(position_filter, filter_mode):
     if filter_mode == "Strict":
         return [position_filter]
@@ -63,9 +73,18 @@ def search_players(query="", position_filter=None, filter_mode="Strict"):
 def format_player_options(df):
     """Selectbox labels for a search-result frame, preserving row order."""
     has_banned = "is_banned" in df.columns
-    cols = ["short_name", "overall", "player_positions", "club_name"] + (["is_banned"] if has_banned else [])
+    cols = ["short_name", "overall", "player_positions", "club_name"]
+    if has_banned:
+        cols += ["is_banned", "player_id"]
+        ban_counts = get_ban_counts() if df["is_banned"].any() else {}
+
+    def _ban_suffix(r):
+        if not (has_banned and r["is_banned"]):
+            return ""
+        count = ban_counts.get(str(r["player_id"]), 1)
+        return f" 🚫 BANNED ×{count}" if count > 1 else " 🚫 BANNED"
+
     return [
-        f"{r['short_name']} ({r['overall']} OVR | {r['player_positions']} | {r['club_name']})"
-        + (" 🚫 BANNED" if has_banned and r["is_banned"] else "")
+        f"{r['short_name']} ({r['overall']} OVR | {r['player_positions']} | {r['club_name']})" + _ban_suffix(r)
         for r in df[cols].to_dict("records")
     ]

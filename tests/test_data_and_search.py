@@ -68,3 +68,18 @@ def test_search_keeps_banned_players_flagged(mock_streamlit_state):
 
     results2 = app.search_players(query=drafted["short_name"])
     assert drafted["player_id"] not in set(results2["player_id"]), "drafted player must be excluded"
+
+def test_ban_count_in_options(mock_streamlit_state):
+    """A player banned by multiple participants shows a xN count in the dropdown label."""
+    df = app.load_data()
+    player = df.iloc[0].to_dict()
+    pid = str(player["player_id"])
+    mock_streamlit_state["banned_player_ids"] = {pid}
+    mock_streamlit_state["bans"] = {"Alice": [player], "Bob": [player]}
+
+    from fcdraft.search import format_player_options, get_ban_counts
+    assert get_ban_counts()[pid] == 2
+
+    results = app.search_players(query=player["short_name"])
+    labels = format_player_options(results)
+    assert any("🚫 BANNED ×2" in l for l in labels), labels

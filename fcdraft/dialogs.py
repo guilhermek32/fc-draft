@@ -5,7 +5,7 @@ import streamlit as st
 from fcdraft.cards import render_preview_card
 from fcdraft.draft import record_pick
 from fcdraft.formations import get_base_position
-from fcdraft.search import format_player_options, search_players
+from fcdraft.search import format_player_options, get_ban_counts, search_players
 from fcdraft.state import save_session_state
 
 
@@ -39,7 +39,9 @@ def draft_player_dialog(slot, picker):
         ))
 
         if p_dict.get("is_banned"):
-            st.error(f"🚫 {p_dict['short_name']} was banned from this draft and cannot be drafted.")
+            count = get_ban_counts().get(str(p_dict["player_id"]), 1)
+            times = f"{count} times" if count > 1 else "once"
+            st.error(f"🚫 {p_dict['short_name']} was banned {times} in this draft and cannot be drafted.")
         elif st.button("✅ Confirm Draft", type="primary", use_container_width=True):
             curr_idx = st.session_state.current_pick_index
             current_pick = st.session_state.draft_sequence[curr_idx]

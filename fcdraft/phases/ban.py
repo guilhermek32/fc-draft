@@ -7,14 +7,19 @@ from fcdraft.state import save_session_state
 
 
 def _ranked_bans():
-    """All submitted bans, tagged with who banned them, highest OVR first."""
-    all_bans = []
+    """Submitted bans aggregated per player (who banned them and how often), highest OVR first."""
+    by_player = {}
     for participant, player_list in st.session_state.bans.items():
         for p in player_list:
-            p_copy = p.copy()
-            p_copy["banned_by"] = participant
-            all_bans.append(p_copy)
-    return sorted(all_bans, key=lambda x: x.get("overall", 50), reverse=True)
+            pid = str(p["player_id"])
+            entry = by_player.setdefault(pid, {**p, "banned_by_list": []})
+            entry["banned_by_list"].append(participant)
+    all_bans = []
+    for entry in by_player.values():
+        entry["ban_count"] = len(entry["banned_by_list"])
+        entry["banned_by"] = ", ".join(entry["banned_by_list"])
+        all_bans.append(entry)
+    return sorted(all_bans, key=lambda x: (x.get("overall", 50), x["ban_count"]), reverse=True)
 
 
 def _ban_choice_column(label_num, picker, exclude_ids):
@@ -75,7 +80,8 @@ def render():
         with st.container(border=True):
             st.markdown("### 🏆 Banned Players Ranking (Highest OVR first)")
             for rk, b in enumerate(_ranked_bans(), 1):
-                st.markdown(f"{rk}. **{b['short_name']}** ({b['overall']} OVR) — Banned by *{b['banned_by']}*")
+                count = f" ×{b['ban_count']}" if b["ban_count"] > 1 else ""
+                st.markdown(f"{rk}. **{b['short_name']}** ({b['overall']} OVR){count} — Banned by *{b['banned_by']}*")
 
         st.write(" ")
         if st.button("🔥 Reveal Bans & Start Snake Draft", use_container_width=True, type="primary"):
