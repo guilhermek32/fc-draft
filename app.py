@@ -1288,6 +1288,7 @@ elif st.session_state.phase == "draft":
                 if not empty_slots:
                     st.warning("All slots are filled for this squad.")
                     st.session_state.current_pick_index += 1
+                    save_session_state()
                     st.rerun()
                     
                 selected_slot = st.selectbox("Select Empty Slot", empty_slots, key=f"sel_slot_{curr_idx}")
@@ -1424,6 +1425,7 @@ elif st.session_state.phase == "draft":
 
     else:
         st.session_state.phase = "completed"
+        save_session_state()
         st.rerun()
 
 # ----------------- Phase 4: Output / Final Summary -----------------
