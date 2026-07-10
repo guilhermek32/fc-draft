@@ -7,10 +7,12 @@ import streamlit as st
 
 # 1. Global Session Store & Mock State
 session_store = {
-    "phase": "testing", 
+    "phase": "testing",
     "initialized": True,
     "drafted_players": {},
-    "banned_player_ids": set()
+    "banned_player_ids": set(),
+    "participants": [],
+    "auth_tokens": {},
 }
 
 class MockSessionState:
@@ -49,6 +51,8 @@ class MockSessionState:
         session_store["initialized"] = True
         session_store["drafted_players"] = {}
         session_store["banned_player_ids"] = set()
+        session_store["participants"] = []
+        session_store["auth_tokens"] = {}
 
     # Attribute access support (st.session_state.phase)
     def __getattr__(self, name):
@@ -105,4 +109,7 @@ def mock_streamlit_state():
     session_store["initialized"] = True
     session_store["drafted_players"] = {}
     session_store["banned_player_ids"] = set()
+    session_store["participants"] = []
+    session_store["auth_tokens"] = {}
+    st.query_params.clear()
     return session_store

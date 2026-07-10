@@ -55,3 +55,38 @@ def check_credential(name, password):
     if not isinstance(credential, dict):
         return False
     return verify_password(password, credential.get("salt", ""), credential.get("hash", ""))
+
+
+def issue_auth_token(participant=None, is_admin=False):
+    """Create a URL login token for an identity, replacing any previous token for it.
+
+    Tokens let a login survive the full-page navigation caused by pitch-slot
+    clicks (?draft_slot= anchors). One token per identity: re-logging in
+    invalidates older tokens (stale bookmarked URLs stop working).
+    """
+    tokens = st.session_state.auth_tokens
+    identity = (participant, bool(is_admin))
+    for token in [t for t, e in tokens.items()
+                  if (e.get("participant"), bool(e.get("is_admin"))) == identity]:
+        del tokens[token]
+    token = secrets.token_urlsafe(16)
+    tokens[token] = {"participant": participant, "is_admin": bool(is_admin)}
+    return token
+
+
+def revoke_auth_token(token):
+    """Remove a token from the map (no-op for unknown/None)."""
+    if token is not None:
+        st.session_state.auth_tokens.pop(token, None)
+
+
+def resolve_auth_token(token):
+    """The identity dict for a token, or None if unknown/invalid."""
+    entry = st.session_state.auth_tokens.get(token)
+    if not isinstance(entry, dict):
+        return None
+    if entry.get("is_admin"):
+        return entry
+    if entry.get("participant") in st.session_state.participants:
+        return entry
+    return None

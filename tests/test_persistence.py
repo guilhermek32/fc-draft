@@ -256,6 +256,7 @@ def test_authed_participant_never_persisted(tmp_path, monkeypatch, mock_streamli
 
     mock_streamlit_state["authed_participant"] = "Alice"
     mock_streamlit_state["generated_passwords"] = {"Alice": "abc23456"}
+    mock_streamlit_state["auth_token"] = "session-own-token"
     app.save_session_state()
 
     with open(test_state_file) as f:
@@ -263,6 +264,26 @@ def test_authed_participant_never_persisted(tmp_path, monkeypatch, mock_streamli
     assert "authed_participant" not in data
     assert "generated_passwords" not in data
     assert "abc23456" not in json.dumps(data)
+    assert "auth_token" not in data
+
+
+def test_auth_tokens_round_trip_and_refresh(tmp_path, monkeypatch, mock_streamlit_state):
+    """The token map persists and is picked up by refresh_shared_state."""
+    from fcdraft.state import refresh_shared_state
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    mock_streamlit_state["auth_tokens"] = {"tok1": {"participant": "Alice", "is_admin": False}}
+    app.save_session_state()
+
+    mock_streamlit_state.clear()
+    assert app.load_session_state()
+    assert mock_streamlit_state["auth_tokens"] == {"tok1": {"participant": "Alice", "is_admin": False}}
+
+    mock_streamlit_state["auth_tokens"] = {}
+    refresh_shared_state()
+    assert mock_streamlit_state["auth_tokens"] == {"tok1": {"participant": "Alice", "is_admin": False}}
 
 
 def test_state_file_is_gitignored():

@@ -5,6 +5,7 @@ import streamlit as st
 from fcdraft.gateway import (
     get_authed_participant,
     live_sync_poller,
+    render_account_box,
     render_login_gateway,
     render_logout_button,
 )
@@ -135,6 +136,9 @@ def render():
 
     st.title("🚫 Phase 2: Blind Player Bans")
     st.write("Each participant must select exactly **3 players** to ban from the pool. Selections are blind and hidden until all submit.")
+
+    with st.sidebar:
+        render_account_box()
 
     _render_generated_passwords_panel()
 

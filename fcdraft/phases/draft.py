@@ -8,6 +8,7 @@ from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.gateway import (
     get_authed_participant,
     live_sync_poller,
+    render_account_box,
     render_login_gateway,
     render_logout_button,
 )
@@ -19,7 +20,10 @@ from fcdraft.state import save_session_state
 
 
 def _render_sidebar(curr_idx, seq):
-    """Draft status, settings, undo, and admin tools. Returns the filter mode."""
+    """Account box, draft status, settings, undo, and admin tools. Returns the filter mode."""
+    render_account_box()
+    st.write("---")
+
     st.markdown("<h2 class='glow-text'>🏆 Draft Status</h2>", unsafe_allow_html=True)
 
     if curr_idx < len(seq):

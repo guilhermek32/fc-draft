@@ -2,6 +2,8 @@
 
 import html as html_lib
 
+import streamlit as st
+
 from fcdraft.config import NOTFOUND_IMG_URL, OVR_TIER_GOLD, OVR_TIER_SILVER
 from fcdraft.images import get_player_image_base64_cached
 
@@ -48,7 +50,11 @@ def render_empty_card(slot, interactive=False):
     </div>
     """
     if interactive:
-        return f'<a href="?draft_slot={slot}" target="_self" style="text-decoration: none; color: inherit;">{card_html}</a>'
+        # The anchor triggers a full page navigation (new Streamlit session);
+        # carrying the login token lets the new session restore the login.
+        token = st.session_state.get("auth_token")
+        auth_part = f"&auth={token}" if token else ""
+        return f'<a href="?draft_slot={slot}{auth_part}" target="_self" style="text-decoration: none; color: inherit;">{card_html}</a>'
     return card_html
 
 

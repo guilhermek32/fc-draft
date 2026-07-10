@@ -45,6 +45,18 @@ def test_render_bench_html():
     html_interactive = app.render_bench_html(bench_slots=3, drafted_players=drafted_players, interactive=True)
     assert '<a href="?draft_slot=SUB 2"' in html_interactive
 
+def test_interactive_links_carry_auth_token(mock_streamlit_state):
+    """When the session holds a login token, pitch-click anchors include it so
+    the resulting page navigation can restore the login."""
+    mock_streamlit_state["auth_token"] = "tok123"
+
+    html = app.render_pitch_html(formation="4-3-3", drafted_players={}, interactive=True)
+    assert '<a href="?draft_slot=ST&auth=tok123"' in html
+
+    bench = app.render_bench_html(bench_slots=2, drafted_players={}, interactive=True)
+    assert '<a href="?draft_slot=SUB 1&auth=tok123"' in bench
+
+
 def test_get_player_image_base64_cached_fallback():
     """Verify that cached base64 image resolver gracefully returns fallback placeholder on invalid URL or ID."""
     # When ID is empty or notfound, it should return the fallback notfound base64 string or url

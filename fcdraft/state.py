@@ -23,6 +23,11 @@ _SESSION_DEFAULTS = {
     "bans": {},
     "ban_submissions": {},
     "auth_credentials": {},
+    # URL login tokens ({token: {"participant", "is_admin"}}); persisted so a
+    # pitch-click navigation (new session) can restore the login.
+    "auth_tokens": {},
+    # This browser session's own URL token; never persisted.
+    "auth_token": None,
     # Which participant is logged in for this browser session; never persisted.
     "authed_participant": None,
     # Whether this browser session is the admin superuser; never persisted.
@@ -149,6 +154,7 @@ def save_session_state(path=None):
         "bans": _slim_bans(st.session_state.get("bans", {})),
         "ban_submissions": st.session_state.get("ban_submissions", {}),
         "auth_credentials": st.session_state.get("auth_credentials", {}),
+        "auth_tokens": st.session_state.get("auth_tokens", {}),
         "banned_player_ids": sorted(st.session_state.get("banned_player_ids", set()), key=str),
         "drafted_players": _slim_squads(st.session_state.get("drafted_players", {})),
         "draft_sequence": st.session_state.get("draft_sequence", []),
@@ -194,6 +200,7 @@ def load_session_state(path=None):
         st.session_state.bans = _rehydrate_bans(state.get("bans", {}))
         st.session_state.ban_submissions = state.get("ban_submissions", {})
         st.session_state.auth_credentials = state.get("auth_credentials", {})
+        st.session_state.auth_tokens = state.get("auth_tokens", {})
         st.session_state.banned_player_ids = normalize_banned_ids(state.get("banned_player_ids", []))
         st.session_state.drafted_players = _rehydrate_squads(state.get("drafted_players", {}))
         st.session_state.draft_sequence = state.get("draft_sequence", [])
@@ -227,6 +234,7 @@ def refresh_shared_state(path=None):
     st.session_state.bans = _rehydrate_bans(state.get("bans", {}))
     st.session_state.ban_submissions = state.get("ban_submissions", {})
     st.session_state.auth_credentials = state.get("auth_credentials", {})
+    st.session_state.auth_tokens = state.get("auth_tokens", {})
     st.session_state.banned_player_ids = normalize_banned_ids(state.get("banned_player_ids", []))
     st.session_state.drafted_players = _rehydrate_squads(state.get("drafted_players", {}))
     st.session_state.draft_sequence = state.get("draft_sequence", [])

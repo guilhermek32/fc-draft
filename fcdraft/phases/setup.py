@@ -224,6 +224,8 @@ def render():
                 set_credential(ADMIN_NAME, admin_password)
                 st.session_state.authed_participant = None
                 st.session_state.is_admin = False
+                st.session_state.auth_tokens = {}
+                st.session_state.auth_token = None
                 st.session_state.drafted_players = {name: {} for name in participant_names}
                 st.session_state.draft_sequence = _build_draft_sequence(participant_names, bench_slots)
                 st.session_state.current_pick_index = 0
