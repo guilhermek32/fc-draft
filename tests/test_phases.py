@@ -82,8 +82,31 @@ def test_ban_phase_renders_reveal_room(mock_streamlit_state):
     ban.render()
 
 
-def test_draft_phase_renders(mock_streamlit_state):
+def test_draft_phase_renders_spectator(mock_streamlit_state):
+    """No login: waiting room + login gateway, no pick UI."""
     _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = None
+    draft.render()
+
+
+def test_draft_phase_renders_on_clock_picker(mock_streamlit_state):
+    _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = "Alice"  # Alice is pick 1
+    draft.render()
+
+
+def test_draft_phase_renders_waiting_participant(mock_streamlit_state):
+    _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = "Bob"  # not on the clock
+    draft.render()
+
+
+def test_draft_phase_renders_admin_session(mock_streamlit_state):
+    _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = None
+    mock_streamlit_state["is_admin"] = True
+    mock_streamlit_state["current_pick_index"] = 1  # undo becomes available
+    mock_streamlit_state["draft_history"] = [{"picker": "Alice", "slot": "ST", "player_name": "P", "overall": 90, "position": "ST", "round": 1, "pick_overall": 1}]
     draft.render()
 
 

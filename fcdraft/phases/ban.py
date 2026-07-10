@@ -2,9 +2,14 @@
 
 import streamlit as st
 
-from fcdraft.auth import check_credential, set_credential
+from fcdraft.gateway import (
+    get_authed_participant,
+    live_sync_poller,
+    render_login_gateway,
+    render_logout_button,
+)
 from fcdraft.search import format_player_options, search_players
-from fcdraft.state import refresh_shared_state, save_session_state
+from fcdraft.state import save_session_state
 
 
 def _ranked_bans():
@@ -60,36 +65,6 @@ def _render_generated_passwords_panel():
             st.rerun()
 
 
-def _render_login_gateway():
-    """Name + secret password form; sets authed_participant on success."""
-    st.subheader("🔐 Participant Login", anchor=False)
-    st.write("Select your name and enter your secret password to access your personal ban screen.")
-
-    name = st.selectbox("Participant", st.session_state.participants, key="login_name")
-    password = st.text_input("Secret Password", type="password", key="login_password")
-
-    if st.button("Login", use_container_width=True, type="primary"):
-        if not name or not password:
-            st.error("Select your name and enter your password.")
-        elif name not in st.session_state.auth_credentials:
-            # Legacy state file created before passwords existed: claim the name.
-            set_credential(name, password)
-            st.session_state.authed_participant = name
-            save_session_state()
-            st.rerun()
-        elif check_credential(name, password):
-            st.session_state.authed_participant = name
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
-
-
-def _render_logout_button(name):
-    if st.button(f"🚪 Log out ({name})", use_container_width=True):
-        st.session_state.authed_participant = None
-        st.rerun()
-
-
 def _render_ban_picker(picker):
     """Authenticated, not-yet-submitted view: pick and lock in exactly 3 bans."""
     st.markdown(f"### 🛡️ Ban Selection for **{picker}**")
@@ -116,7 +91,7 @@ def _render_ban_picker(picker):
             st.rerun()
 
     st.write(" ")
-    _render_logout_button(picker)
+    render_logout_button(picker)
 
 
 def _render_locked_view(picker):
@@ -127,7 +102,7 @@ def _render_locked_view(picker):
         for i, p in enumerate(st.session_state.bans.get(picker, []), 1):
             st.markdown(f"{i}. **{p['short_name']}** ({p.get('overall', '?')} OVR)")
     st.write("Waiting for the remaining participants to submit their bans.")
-    _render_logout_button(picker)
+    render_logout_button(picker)
 
 
 def _render_reveal_room():
@@ -155,8 +130,8 @@ def _render_reveal_room():
 
 
 def render():
-    # Pick up submissions made from other devices/browser sessions.
-    refresh_shared_state()
+    # Flip waiting screens automatically when another device submits.
+    live_sync_poller()
 
     st.title("🚫 Phase 2: Blind Player Bans")
     st.write("Each participant must select exactly **3 players** to ban from the pool. Selections are blind and hidden until all submit.")
@@ -164,14 +139,12 @@ def render():
     _render_generated_passwords_panel()
 
     all_submitted = all(st.session_state.ban_submissions.values()) if st.session_state.ban_submissions else False
-    authed = st.session_state.get("authed_participant")
-    if authed not in st.session_state.participants:
-        authed = None
+    authed = get_authed_participant()
 
     if all_submitted:
         _render_reveal_room()
     elif authed is None:
-        _render_login_gateway()
+        render_login_gateway()
     elif st.session_state.ban_submissions.get(authed):
         _render_locked_view(authed)
     else:

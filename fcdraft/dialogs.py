@@ -3,14 +3,20 @@
 import streamlit as st
 
 from fcdraft.cards import render_preview_card
-from fcdraft.draft import record_pick
+from fcdraft.draft import commit_pick
 from fcdraft.formations import get_base_position
 from fcdraft.search import format_player_options, get_ban_counts, search_players
-from fcdraft.state import save_session_state
 
 
 @st.dialog("🎯 Draft Player Slot")
 def draft_player_dialog(slot, picker):
+    if st.session_state.get("authed_participant") != picker:
+        st.warning(f"Only **{picker}** can make this pick.")
+        if st.button("Close", use_container_width=True):
+            st.query_params.pop("draft_slot", None)
+            st.rerun()
+        return
+
     st.markdown(f"### Draft Player for: **{slot}**")
 
     base_pos = get_base_position(slot)
@@ -43,14 +49,9 @@ def draft_player_dialog(slot, picker):
             times = f"{count} times" if count > 1 else "once"
             st.error(f"🚫 {p_dict['short_name']} was banned {times} in this draft and cannot be drafted.")
         elif st.button("✅ Confirm Draft", type="primary", use_container_width=True):
-            curr_idx = st.session_state.current_pick_index
-            current_pick = st.session_state.draft_sequence[curr_idx]
-            record_pick(picker, slot, p_dict, curr_idx + 1, current_pick["round"])
-            st.session_state.current_pick_index += 1
-            save_session_state()
-
-            st.query_params.pop("draft_slot", None)
-            st.rerun()
+            if commit_pick(picker, slot, p_dict):
+                st.query_params.pop("draft_slot", None)
+                st.rerun()
 
     st.write(" ")
     if st.button("❌ Cancel & Close", use_container_width=True, type="secondary"):

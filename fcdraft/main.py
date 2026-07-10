@@ -5,7 +5,7 @@ import streamlit as st
 from fcdraft.dialogs import draft_player_dialog
 from fcdraft.formations import build_slot_list
 from fcdraft.phases import ban, completed, draft, setup
-from fcdraft.state import init_session_state
+from fcdraft.state import init_session_state, refresh_shared_state
 from fcdraft.styles import inject_css
 
 _PHASES = {
@@ -25,6 +25,10 @@ def _handle_draft_slot_query_param():
     curr_idx = st.session_state.current_pick_index
     if curr_idx < len(seq):
         picker = seq[curr_idx]["participant"]
+        if st.session_state.get("authed_participant") != picker:
+            # Only the on-clock participant's own session may open the pick dialog.
+            st.query_params.pop("draft_slot", None)
+            return
         all_slots = build_slot_list(
             st.session_state.formations[picker], st.session_state.bench_slots
         )
@@ -45,6 +49,10 @@ def run():
     )
     inject_css()
     init_session_state()
+    # Converge with writes from other devices before anything reads shared state
+    # (the pick dialog below must see a fresh current_pick_index).
+    if st.session_state.phase in ("ban", "draft"):
+        refresh_shared_state()
     _handle_draft_slot_query_param()
 
     render_phase = _PHASES.get(st.session_state.phase, setup.render)

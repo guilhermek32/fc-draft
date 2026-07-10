@@ -78,6 +78,7 @@ st.session_state = MockSessionState()
 st.rerun = MagicMock()
 st.cache_data = mock_decorator_or_factory
 st.dialog = mock_decorator_or_factory
+st.fragment = mock_decorator_or_factory
 st.html = MagicMock()
 st.markdown = MagicMock()
 st.write = MagicMock()

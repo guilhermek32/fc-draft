@@ -5,6 +5,37 @@ import streamlit as st
 from fcdraft.data import load_data
 from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.search import allowed_positions, get_excluded_ids
+from fcdraft.state import refresh_shared_state, save_session_state
+
+
+def commit_pick(picker, slot, player):
+    """Validate against the freshest shared state, then record and save a pick.
+
+    Guards the race where another device advanced the draft (or an admin undid
+    a pick) between this session's render and the button click. Returns True
+    when the pick landed, False (with a warning shown) otherwise.
+    """
+    refresh_shared_state()
+    curr_idx = st.session_state.current_pick_index
+    seq = st.session_state.draft_sequence
+
+    if curr_idx >= len(seq) or seq[curr_idx]["participant"] != picker:
+        st.warning("The draft has moved on — it is no longer your turn. The board has been refreshed.")
+        return False
+    if st.session_state.get("authed_participant") != picker:
+        st.warning("You must be logged in as the on-clock participant to draft.")
+        return False
+    if slot in st.session_state.drafted_players.get(picker, {}):
+        st.warning(f"Slot {slot} was already filled. Pick another slot.")
+        return False
+    if str(player["player_id"]) in {str(pid) for pid in st.session_state.banned_player_ids}:
+        st.warning(f"{player['short_name']} is banned and cannot be drafted.")
+        return False
+
+    record_pick(picker, slot, player, curr_idx + 1, seq[curr_idx]["round"])
+    st.session_state.current_pick_index = curr_idx + 1
+    save_session_state()
+    return True
 
 
 def record_pick(picker, slot, player, pick_overall, round_number):

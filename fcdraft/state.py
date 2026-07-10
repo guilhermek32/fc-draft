@@ -25,6 +25,10 @@ _SESSION_DEFAULTS = {
     "auth_credentials": {},
     # Which participant is logged in for this browser session; never persisted.
     "authed_participant": None,
+    # Whether this browser session is the admin superuser; never persisted.
+    "is_admin": False,
+    # Monotonic save counter used by the live-sync poller to detect remote writes.
+    "state_version": 0,
     "banned_player_ids": set(),
     "drafted_players": {},
     "draft_sequence": [],
@@ -109,10 +113,34 @@ def _rehydrate_bans(bans):
     return full
 
 
+def peek_state_version(path=None):
+    """The state_version currently on disk, without touching session state.
+
+    On a missing file or read error, returns the in-memory version so a
+    transient failure never looks like a remote change (no rerun storms).
+    """
+    path = path or STATE_FILE
+    fallback = st.session_state.get("state_version", 0)
+    if not os.path.exists(path):
+        return fallback
+    try:
+        with open(path, "r") as f:
+            state = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return fallback
+    if not isinstance(state, dict):
+        return fallback
+    return state.get("state_version", 0)
+
+
 def save_session_state(path=None):
     """Serialize and save the current draft state to disk (atomically)."""
     path = path or STATE_FILE
+    # Base the new version on the disk value, not memory, so two sessions that
+    # alternate saves always produce strictly increasing versions.
+    new_version = peek_state_version(path) + 1
     state_to_save = {
+        "state_version": new_version,
         "phase": st.session_state.get("phase", "setup"),
         "participants": st.session_state.get("participants", []),
         "team_names": st.session_state.get("team_names", {}),
@@ -132,6 +160,7 @@ def save_session_state(path=None):
         with open(tmp_path, "w") as f:
             json.dump(state_to_save, f)
         os.replace(tmp_path, path)
+        st.session_state.state_version = new_version
     except (OSError, TypeError, ValueError) as e:
         try:
             os.remove(tmp_path)
@@ -170,6 +199,7 @@ def load_session_state(path=None):
         st.session_state.draft_sequence = state.get("draft_sequence", [])
         st.session_state.current_pick_index = state.get("current_pick_index", 0)
         st.session_state.draft_history = state.get("draft_history", [])
+        st.session_state.state_version = state.get("state_version", 0)
         return True
     except (AttributeError, TypeError) as e:
         st.warning(f"Saved draft state has an unexpected shape and was ignored: {e}")
@@ -197,6 +227,12 @@ def refresh_shared_state(path=None):
     st.session_state.bans = _rehydrate_bans(state.get("bans", {}))
     st.session_state.ban_submissions = state.get("ban_submissions", {})
     st.session_state.auth_credentials = state.get("auth_credentials", {})
+    st.session_state.banned_player_ids = normalize_banned_ids(state.get("banned_player_ids", []))
+    st.session_state.drafted_players = _rehydrate_squads(state.get("drafted_players", {}))
+    st.session_state.draft_sequence = state.get("draft_sequence", [])
+    st.session_state.current_pick_index = state.get("current_pick_index", 0)
+    st.session_state.draft_history = state.get("draft_history", [])
+    st.session_state.state_version = state.get("state_version", 0)
 
 
 def init_session_state():

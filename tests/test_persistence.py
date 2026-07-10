@@ -181,27 +181,72 @@ def test_legacy_state_without_credentials_loads(tmp_path, monkeypatch, mock_stre
 
 
 def test_refresh_shared_state_picks_up_other_sessions(tmp_path, monkeypatch, mock_streamlit_state):
-    """refresh_shared_state re-reads submissions from disk without touching login state."""
+    """refresh_shared_state re-reads shared keys from disk without touching login state."""
     from fcdraft.state import refresh_shared_state
 
     test_state_file = tmp_path / "draft_state.json"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     on_disk = {
-        "phase": "ban",
+        "phase": "draft",
         "bans": {"Alice": [], "Bob": []},
         "ban_submissions": {"Alice": True, "Bob": False},
         "auth_credentials": {"Alice": {"salt": "00", "hash": "00"}},
+        "banned_player_ids": ["9"],
+        "drafted_players": {"Alice": {"ST": {"player_id": "x", "short_name": "Ghost"}}},
+        "draft_sequence": [{"round": 1, "participant": "Alice"}],
+        "current_pick_index": 1,
+        "draft_history": [{"picker": "Alice", "slot": "ST"}],
+        "state_version": 7,
     }
     test_state_file.write_text(json.dumps(on_disk))
 
     mock_streamlit_state["ban_submissions"] = {"Alice": False, "Bob": False}
+    mock_streamlit_state["current_pick_index"] = 0
     mock_streamlit_state["authed_participant"] = "Bob"
+    mock_streamlit_state["is_admin"] = True
     refresh_shared_state()
 
     assert mock_streamlit_state["ban_submissions"] == {"Alice": True, "Bob": False}
     assert mock_streamlit_state["auth_credentials"] == {"Alice": {"salt": "00", "hash": "00"}}
+    assert mock_streamlit_state["banned_player_ids"] == {"9"}
+    assert mock_streamlit_state["drafted_players"]["Alice"]["ST"]["short_name"] == "Ghost"
+    assert mock_streamlit_state["draft_sequence"] == [{"round": 1, "participant": "Alice"}]
+    assert mock_streamlit_state["current_pick_index"] == 1
+    assert mock_streamlit_state["draft_history"] == [{"picker": "Alice", "slot": "ST"}]
+    assert mock_streamlit_state["state_version"] == 7
+    # Per-session keys untouched
     assert mock_streamlit_state["authed_participant"] == "Bob"
+    assert mock_streamlit_state["is_admin"] is True
+
+
+def test_state_version_increments_from_disk(tmp_path, monkeypatch, mock_streamlit_state):
+    """Saves base the version on the disk value so alternating writers never repeat."""
+    from fcdraft.state import peek_state_version
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    test_state_file.write_text(json.dumps({"state_version": 5}))
+    mock_streamlit_state["state_version"] = 0  # stale in-memory value
+    app.save_session_state()
+
+    assert peek_state_version() == 6
+    assert mock_streamlit_state["state_version"] == 6
+
+
+def test_peek_state_version_fallbacks(tmp_path, monkeypatch, mock_streamlit_state):
+    """Missing file or legacy file without the key never looks like a remote change."""
+    from fcdraft.state import peek_state_version
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    mock_streamlit_state["state_version"] = 3
+    assert peek_state_version() == 3  # missing file -> in-memory value
+
+    test_state_file.write_text(json.dumps({"phase": "ban"}))  # legacy, no version key
+    assert peek_state_version() == 0
 
 
 def test_authed_participant_never_persisted(tmp_path, monkeypatch, mock_streamlit_state):

@@ -28,6 +28,89 @@ def test_get_base_position():
     assert app.get_base_position("SUB 4") == "SUB"
     assert app.get_base_position("GK") == "GK"
 
+def _seed_commit_state(store, tmp_path, monkeypatch):
+    """Draft-phase state on disk + in memory where Alice is on the clock."""
+    import json
+
+    state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(state_file))
+
+    store.update({
+        "phase": "draft",
+        "participants": ["Alice", "Bob"],
+        "formations": {"Alice": "4-3-3", "Bob": "4-3-3"},
+        "bench_slots": 0,
+        "bans": {}, "ban_submissions": {},
+        "drafted_players": {"Alice": {}, "Bob": {}},
+        "draft_sequence": [
+            {"round": 1, "pick_in_round": 1, "overall_pick": 1, "participant": "Alice"},
+            {"round": 1, "pick_in_round": 2, "overall_pick": 2, "participant": "Bob"},
+        ],
+        "current_pick_index": 0,
+        "draft_history": [],
+        "banned_player_ids": set(),
+        "authed_participant": "Alice",
+    })
+    app.save_session_state()
+    return state_file
+
+
+def _player():
+    return {"player_id": "p1", "short_name": "P1", "overall": 90, "player_positions": "ST"}
+
+
+def test_commit_pick_happy_path(tmp_path, monkeypatch, mock_streamlit_state):
+    from fcdraft.draft import commit_pick
+
+    _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
+    assert commit_pick("Alice", "ST", _player()) is True
+    assert mock_streamlit_state["current_pick_index"] == 1
+    assert mock_streamlit_state["drafted_players"]["Alice"]["ST"]["short_name"] == "P1"
+    assert len(mock_streamlit_state["draft_history"]) == 1
+
+
+def test_commit_pick_aborts_when_turn_moved_on(tmp_path, monkeypatch, mock_streamlit_state):
+    """Another device already advanced the draft on disk: the stale click must not land."""
+    import json
+    from fcdraft.draft import commit_pick
+
+    state_file = _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
+    on_disk = json.loads(state_file.read_text())
+    on_disk["current_pick_index"] = 1  # Bob is now on the clock
+    state_file.write_text(json.dumps(on_disk))
+
+    assert commit_pick("Alice", "ST", _player()) is False
+    assert mock_streamlit_state["current_pick_index"] == 1  # refreshed, not advanced
+    assert mock_streamlit_state["draft_history"] == []
+
+
+def test_commit_pick_aborts_for_wrong_session(tmp_path, monkeypatch, mock_streamlit_state):
+    from fcdraft.draft import commit_pick
+
+    _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
+    mock_streamlit_state["authed_participant"] = "Bob"  # not the on-clock participant
+
+    assert commit_pick("Alice", "ST", _player()) is False
+    assert mock_streamlit_state["current_pick_index"] == 0
+
+
+def test_commit_pick_aborts_on_filled_slot_and_banned_player(tmp_path, monkeypatch, mock_streamlit_state):
+    import json
+    from fcdraft.draft import commit_pick
+
+    state_file = _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
+    on_disk = json.loads(state_file.read_text())
+    on_disk["drafted_players"] = {"Alice": {"ST": {"player_id": "zzz", "short_name": "Taken", "overall": 80}}}
+    state_file.write_text(json.dumps(on_disk))
+    assert commit_pick("Alice", "ST", _player()) is False
+
+    on_disk["drafted_players"] = {"Alice": {}}
+    on_disk["banned_player_ids"] = ["p1"]
+    state_file.write_text(json.dumps(on_disk))
+    assert commit_pick("Alice", "LW", _player()) is False
+    assert mock_streamlit_state["draft_history"] == []
+
+
 def test_auto_draft_remaining(mock_streamlit_state):
     """Verify that auto_draft_remaining automatically drafts matching players for all empty slots."""
     # Setup mock draft sequence and participants

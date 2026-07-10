@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from fcdraft.auth import generate_password, set_credential
-from fcdraft.config import FORMATIONS, NOTFOUND_IMG_URL
+from fcdraft.config import ADMIN_LABEL, ADMIN_NAME, FORMATIONS, NOTFOUND_IMG_URL
 from fcdraft.data import load_data
 from fcdraft.state import save_session_state
 
@@ -152,6 +152,16 @@ def render():
             help="Passwords are generated when you start and shown once so you can share them.",
         )
 
+        if auto_passwords:
+            admin_password = None  # generated on start
+        else:
+            admin_password = st.text_input(
+                "Admin Password",
+                type="password",
+                key="p_pass_admin",
+                help="Superuser password for draft-day admin tools (undo a pick, auto-draft).",
+            )
+
         participant_names = []
         participant_team_names = []
         participant_formations = []
@@ -185,6 +195,10 @@ def render():
                 st.error("Error: All participant names must be filled out and unique.")
             elif not auto_passwords and not all(participant_passwords):
                 st.error("Error: Every participant needs a secret password for the blind ban phase.")
+            elif not auto_passwords and not admin_password:
+                st.error("Error: An admin password is required for draft-day admin tools.")
+            elif any(n in (ADMIN_NAME, ADMIN_LABEL) for n in participant_names):
+                st.error(f"Error: '{ADMIN_LABEL}' is reserved and cannot be a participant name.")
             else:
                 st.session_state.participants = participant_names.copy()
                 st.session_state.team_names = {
@@ -199,13 +213,17 @@ def render():
                 st.session_state.auth_credentials = {}
                 if auto_passwords:
                     participant_passwords = [generate_password() for _ in range(num_participants)]
+                    admin_password = generate_password()
                     # Shown once on the ban page for the admin to share; never persisted.
                     st.session_state.generated_passwords = {
                         participant_names[j]: participant_passwords[j] for j in range(num_participants)
                     }
+                    st.session_state.generated_passwords[ADMIN_LABEL] = admin_password
                 for j in range(num_participants):
                     set_credential(participant_names[j], participant_passwords[j])
+                set_credential(ADMIN_NAME, admin_password)
                 st.session_state.authed_participant = None
+                st.session_state.is_admin = False
                 st.session_state.drafted_players = {name: {} for name in participant_names}
                 st.session_state.draft_sequence = _build_draft_sequence(participant_names, bench_slots)
                 st.session_state.current_pick_index = 0

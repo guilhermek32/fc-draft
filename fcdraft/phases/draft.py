@@ -2,8 +2,15 @@
 
 import streamlit as st
 
-from fcdraft.draft import auto_draft_remaining, record_pick
+from fcdraft.config import ADMIN_LABEL
+from fcdraft.draft import auto_draft_remaining, commit_pick
 from fcdraft.formations import build_slot_list, get_base_position
+from fcdraft.gateway import (
+    get_authed_participant,
+    live_sync_poller,
+    render_login_gateway,
+    render_logout_button,
+)
 from fcdraft.phases.ban import _ranked_bans
 from fcdraft.pitch import display_pitch_component
 from fcdraft.search import format_player_options, get_ban_counts, search_players
@@ -46,10 +53,11 @@ def _render_sidebar(curr_idx, seq):
 
     st.write("---")
     st.subheader("⚙️ Draft Settings")
-    filter_mode = st.selectbox("Position Match Mode", ["Strict", "Flexible"], index=1,
+    filter_mode = st.selectbox("Position Match Mode", ["Strict", "Flexible"], index=1, key="filter_mode",
                                help="Strict: Player must have exact position. Flexible: Allows adjacent positions (e.g. LWB in LB slot).")
 
-    if curr_idx > 0:
+    is_admin = st.session_state.get("is_admin", False)
+    if is_admin and curr_idx > 0:
         st.write(" ")
         if st.button("↩️ Undo Last Pick", use_container_width=True, type="secondary"):
             prev_idx = curr_idx - 1
@@ -66,7 +74,7 @@ def _render_sidebar(curr_idx, seq):
             save_session_state()
             st.rerun()
 
-    if curr_idx < len(seq):
+    if is_admin and curr_idx < len(seq):
         st.write(" ")
         with st.expander("🤖 Admin Auto-Draft Tool"):
             st.warning("This will automatically complete the entire remaining draft using the highest-rated available players.")
@@ -122,7 +130,6 @@ def _render_stat_grid(p_dict):
 
 
 def _render_draft_room(curr_idx, seq, picker, filter_mode):
-    current_pick = seq[curr_idx]
     col_select, col_preview = st.columns([5, 3])
 
     with col_select:
@@ -163,11 +170,8 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
             st.error(f"🚫 {p_dict['short_name']} was banned {times} in this draft and cannot be drafted.")
         elif p_dict:
             if st.button(f"✅ Draft {p_dict['short_name']} for {selected_slot}", type="primary", use_container_width=True):
-                record_pick(picker, selected_slot, p_dict, curr_idx + 1, current_pick["round"])
-                st.session_state.current_pick_index += 1
-                st.success(f"Successfully drafted {p_dict['short_name']}!")
-                save_session_state()
-                st.rerun()
+                if commit_pick(picker, selected_slot, p_dict):
+                    st.rerun()
 
     with col_preview:
         if p_dict:
@@ -208,13 +212,14 @@ def _render_board():
 
 
 def _render_pitch_tab(picker):
+    """Pitch visualizer; slots are clickable only for the on-clock viewer (picker)."""
     st.subheader("Field View")
-    viewer_picker = st.selectbox(
-        "Show pitch for participant:",
-        st.session_state.participants,
-        format_func=lambda x: f"{st.session_state.team_names.get(x, f'{x} FC')} ({x})",
-        key="field_view_picker",
-    )
+    labels = {
+        f"{st.session_state.team_names.get(p, f'{p} FC')} ({p})": p
+        for p in st.session_state.participants
+    }
+    choice = st.selectbox("Show pitch for participant:", list(labels), key="field_view_picker")
+    viewer_picker = labels[choice]
     display_pitch_component(
         st.session_state.formations[viewer_picker],
         st.session_state.drafted_players[viewer_picker],
@@ -223,7 +228,37 @@ def _render_pitch_tab(picker):
     )
 
 
+def _render_waiting_room(viewer, curr_idx, seq, on_clock):
+    """Draft Room tab for everyone who is not on the clock."""
+    on_clock_team = st.session_state.team_names.get(on_clock, f"{on_clock} FC")
+    st.markdown(f"""
+    <div class="glass-panel" style="padding: 20px; text-align: center; border-color: #ffd700;">
+        <h3 style="margin: 0;">🎯 <b>{on_clock}</b> is on the clock</h3>
+        <div style="font-size: 14px; color: #aaa; margin-top: 6px;">{on_clock_team} — the screen updates automatically when they pick.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.write(" ")
+
+    if viewer is None and not st.session_state.get("is_admin"):
+        render_login_gateway()
+        return
+
+    if viewer is not None:
+        turns_away = next(
+            (offset for offset, pick in enumerate(seq[curr_idx:]) if pick["participant"] == viewer),
+            None,
+        )
+        if turns_away is not None:
+            st.info(f"⏳ You pick in **{turns_away}** turn{'s' if turns_away != 1 else ''}.")
+        else:
+            st.info("✅ Your squad is complete — no picks remaining for you.")
+    render_logout_button(viewer if viewer is not None else ADMIN_LABEL)
+
+
 def render():
+    # Rerun automatically when another device drafts a player.
+    live_sync_poller()
+
     curr_idx = st.session_state.current_pick_index
     seq = st.session_state.draft_sequence
 
@@ -233,14 +268,21 @@ def render():
     st.title("🏟️ Snake Draft Board")
 
     if curr_idx < len(seq):
-        picker = seq[curr_idx]["participant"]
+        on_clock = seq[curr_idx]["participant"]
+        viewer = get_authed_participant()
+        is_my_turn = viewer is not None and viewer == on_clock
+
         tab_draft, tab_board, tab_pitch = st.tabs(["🎯 Draft Room", "📊 Draft Board", "⚽ Squad Pitch Visualizer"])
         with tab_draft:
-            _render_draft_room(curr_idx, seq, picker, filter_mode)
+            if is_my_turn:
+                _render_draft_room(curr_idx, seq, on_clock, filter_mode)
+                render_logout_button(viewer)
+            else:
+                _render_waiting_room(viewer, curr_idx, seq, on_clock)
         with tab_board:
             _render_board()
         with tab_pitch:
-            _render_pitch_tab(picker)
+            _render_pitch_tab(on_clock if is_my_turn else None)
     else:
         st.session_state.phase = "completed"
         save_session_state()

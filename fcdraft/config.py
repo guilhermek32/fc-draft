@@ -26,6 +26,13 @@ PBKDF2_ITERATIONS = 600_000
 SALT_BYTES = 16
 GENERATED_PASSWORD_LENGTH = 8
 
+# Reserved credential key + display label for the admin superuser
+ADMIN_NAME = "__admin__"
+ADMIN_LABEL = "🛡️ Admin"
+
+# How often each browser session polls the state file for remote changes
+LIVE_SYNC_INTERVAL = "2s"
+
 FORMATIONS = {
     "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
     "4-4-2": ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "ST", "ST"],
