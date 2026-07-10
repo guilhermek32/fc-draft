@@ -1,11 +1,58 @@
 """Draft progression helpers."""
 
+import time
+
 import streamlit as st
 
+from fcdraft.config import PICK_TIMER_SECONDS
 from fcdraft.data import load_data
 from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.search import allowed_positions, get_excluded_ids
 from fcdraft.state import refresh_shared_state, save_session_state
+
+
+def reset_pick_deadline():
+    """Restart the pick clock for the current pick (None when the draft is over)."""
+    if st.session_state.current_pick_index < len(st.session_state.draft_sequence):
+        st.session_state.pick_deadline = time.time() + PICK_TIMER_SECONDS
+    else:
+        st.session_state.pick_deadline = None
+
+
+def apply_pick_timeout(expired_deadline):
+    """Relegate the on-clock participant after their pick clock ran out.
+
+    All of their remaining picks move to the end of the draft sequence
+    (everyone else's order is preserved, as is the relative order of picks
+    already relegated). Any open session may call this when it observes an
+    expired deadline; the freshest shared state is re-checked first so that
+    concurrent enforcement from several devices lands only once.
+    """
+    refresh_shared_state()
+    curr_idx = st.session_state.current_pick_index
+    seq = st.session_state.draft_sequence
+
+    if curr_idx >= len(seq):
+        return False
+    deadline = st.session_state.pick_deadline
+    # Another session already handled this expiry (deadline renewed) or the
+    # pick landed in time; also covers deadlines still in the future.
+    if deadline is None or deadline != expired_deadline or time.time() < deadline:
+        return False
+
+    picker = seq[curr_idx]["participant"]
+    remaining = seq[curr_idx:]
+    kept = [p for p in remaining if p["participant"] != picker]
+    relegated = [p for p in remaining if p["participant"] == picker]
+    new_seq = seq[:curr_idx] + kept + relegated
+    for idx, pick in enumerate(new_seq, 1):
+        pick["overall_pick"] = idx
+
+    st.session_state.draft_sequence = new_seq
+    st.session_state.last_timeout = {"participant": picker, "at_pick": curr_idx + 1}
+    reset_pick_deadline()
+    save_session_state()
+    return True
 
 
 def commit_pick(picker, slot, player):
@@ -34,6 +81,7 @@ def commit_pick(picker, slot, player):
 
     record_pick(picker, slot, player, curr_idx + 1, seq[curr_idx]["round"])
     st.session_state.current_pick_index = curr_idx + 1
+    reset_pick_deadline()
     save_session_state()
     return True
 
@@ -94,3 +142,4 @@ def auto_draft_remaining(filter_mode="Flexible"):
             all_excluded.add(best_player["player_id"])
 
     st.session_state.current_pick_index = len(seq)
+    st.session_state.pick_deadline = None

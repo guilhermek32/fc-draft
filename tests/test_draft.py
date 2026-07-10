@@ -111,6 +111,132 @@ def test_commit_pick_aborts_on_filled_slot_and_banned_player(tmp_path, monkeypat
     assert mock_streamlit_state["draft_history"] == []
 
 
+# --- Pick timer / relegation ---
+
+def _pick(overall_pick, participant, round_=1):
+    return {"round": round_, "pick_in_round": 1, "overall_pick": overall_pick, "participant": participant}
+
+
+def _seed_timer_state(store, tmp_path, monkeypatch, sequence, expired_deadline):
+    """Draft-phase state on disk + in memory with an already-expired pick clock."""
+    state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(state_file))
+    store.update({
+        "participants": sorted({p["participant"] for p in sequence}),
+        "team_names": {}, "formations": {}, "bench_slots": 0,
+        "bans": {}, "ban_submissions": {},
+        "drafted_players": {}, "banned_player_ids": set(),
+        "draft_sequence": sequence,
+        "current_pick_index": 0,
+        "draft_history": [],
+        "pick_deadline": expired_deadline,
+        "last_timeout": None,
+    })
+    app.save_session_state()
+    return state_file
+
+
+def test_timeout_relegates_all_picks_to_end(tmp_path, monkeypatch, mock_streamlit_state):
+    import time
+    from fcdraft.draft import apply_pick_timeout
+
+    expired = time.time() - 5
+    seq = [
+        _pick(1, "Alice"), _pick(2, "Bob"), _pick(3, "Cara"),
+        _pick(4, "Cara", 2), _pick(5, "Bob", 2), _pick(6, "Alice", 2),
+    ]
+    _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
+
+    assert apply_pick_timeout(expired) is True
+    order = [p["participant"] for p in mock_streamlit_state["draft_sequence"]]
+    assert order == ["Bob", "Cara", "Cara", "Bob", "Alice", "Alice"]
+    assert [p["overall_pick"] for p in mock_streamlit_state["draft_sequence"]] == [1, 2, 3, 4, 5, 6]
+    assert mock_streamlit_state["last_timeout"] == {"participant": "Alice", "at_pick": 1}
+    assert mock_streamlit_state["pick_deadline"] > time.time()  # clock renewed
+
+
+def test_second_relegation_keeps_relative_order(tmp_path, monkeypatch, mock_streamlit_state):
+    """Two players timing out end up drafting in the same order at the back."""
+    import time
+    from fcdraft.draft import apply_pick_timeout
+
+    expired = time.time() - 5
+    seq = [
+        _pick(1, "Alice"), _pick(2, "Bob"), _pick(3, "Cara"),
+        _pick(4, "Cara", 2), _pick(5, "Bob", 2), _pick(6, "Alice", 2),
+    ]
+    _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
+
+    assert apply_pick_timeout(expired) is True  # relegates Alice; Bob now on the clock
+    second_expired = mock_streamlit_state["pick_deadline"]
+    monkeypatch.setattr("fcdraft.draft.time", type("T", (), {"time": staticmethod(lambda: second_expired + 1)}))
+    assert apply_pick_timeout(second_expired) is True  # relegates Bob too
+
+    order = [p["participant"] for p in mock_streamlit_state["draft_sequence"]]
+    assert order == ["Cara", "Cara", "Alice", "Alice", "Bob", "Bob"]
+
+
+def test_timeout_noop_when_another_session_handled_it(tmp_path, monkeypatch, mock_streamlit_state):
+    import json
+    import time
+    from fcdraft.draft import apply_pick_timeout
+
+    expired = time.time() - 5
+    seq = [_pick(1, "Alice"), _pick(2, "Bob")]
+    state_file = _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
+
+    # Another device already renewed the clock on disk.
+    on_disk = json.loads(state_file.read_text())
+    on_disk["pick_deadline"] = time.time() + 60
+    state_file.write_text(json.dumps(on_disk))
+
+    assert apply_pick_timeout(expired) is False
+    order = [p["participant"] for p in mock_streamlit_state["draft_sequence"]]
+    assert order == ["Alice", "Bob"]
+    assert mock_streamlit_state["last_timeout"] is None
+
+
+def test_timeout_loops_when_only_relegated_picks_remain(tmp_path, monkeypatch, mock_streamlit_state):
+    import time
+    from fcdraft.draft import apply_pick_timeout
+
+    expired = time.time() - 5
+    seq = [_pick(1, "Alice"), _pick(2, "Alice", 2)]
+    _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
+
+    assert apply_pick_timeout(expired) is True
+    order = [p["participant"] for p in mock_streamlit_state["draft_sequence"]]
+    assert order == ["Alice", "Alice"]  # nothing to push behind; clock just restarts
+    assert mock_streamlit_state["pick_deadline"] > time.time()
+
+
+def test_commit_pick_renews_deadline(tmp_path, monkeypatch, mock_streamlit_state):
+    import time
+    from fcdraft.draft import commit_pick
+
+    _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
+    assert commit_pick("Alice", "ST", _player()) is True
+    assert mock_streamlit_state["pick_deadline"] > time.time()
+
+    # Last pick of the draft: the clock stops.
+    mock_streamlit_state["authed_participant"] = "Bob"
+    app.save_session_state()
+    assert commit_pick("Bob", "ST", _player() | {"player_id": "p2"}) is True
+    assert mock_streamlit_state["pick_deadline"] is None
+
+
+def test_pick_deadline_persists_across_save_load(tmp_path, monkeypatch, mock_streamlit_state):
+    import time
+
+    expired = time.time() + 42.5
+    seq = [_pick(1, "Alice")]
+    _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
+
+    mock_streamlit_state["pick_deadline"] = None  # wipe memory, reload from disk
+    assert app.load_session_state() is True
+    assert mock_streamlit_state["pick_deadline"] == expired
+
+
 def test_auto_draft_remaining(mock_streamlit_state):
     """Verify that auto_draft_remaining automatically drafts matching players for all empty slots."""
     # Setup mock draft sequence and participants

@@ -1,9 +1,11 @@
 """Phase 3: snake draft board."""
 
+import time
+
 import streamlit as st
 
-from fcdraft.config import ADMIN_LABEL
-from fcdraft.draft import auto_draft_remaining, commit_pick
+from fcdraft.config import ADMIN_LABEL, PICK_TIMER_SECONDS
+from fcdraft.draft import apply_pick_timeout, auto_draft_remaining, commit_pick, reset_pick_deadline
 from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.gateway import (
     get_authed_participant,
@@ -17,6 +19,41 @@ from fcdraft.pitch import display_pitch_component
 from fcdraft.search import format_player_options, get_ban_counts, search_players
 from fcdraft.cards import render_preview_card
 from fcdraft.state import save_session_state
+
+
+@st.fragment(run_every="1s")
+def _pick_timer_fragment():
+    """Countdown for the current pick; relegates the on-clock picker on expiry.
+
+    Any open session may trigger the timeout — apply_pick_timeout() re-checks
+    the freshest shared state so concurrent enforcement lands only once.
+    """
+    deadline = st.session_state.get("pick_deadline")
+    if deadline is None or st.session_state.current_pick_index >= len(st.session_state.draft_sequence):
+        return
+
+    remaining = deadline - time.time()
+    if remaining <= 0:
+        apply_pick_timeout(deadline)
+        st.rerun(scope="app")
+
+    color = "#ff4b4b" if remaining < 15 else "#ffd700"
+    minutes, seconds = divmod(int(remaining), 60)
+    st.markdown(f"""
+    <div class="glass-panel" style="padding: 8px 15px; text-align: center; border-color: {color};">
+        ⏱️ Time left for this pick:
+        <span style="font-size: 22px; font-weight: 800; color: {color};">{minutes}:{seconds:02d}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _render_timeout_notice():
+    last = st.session_state.get("last_timeout")
+    if last:
+        st.warning(
+            f"⏱️ **{last['participant']}** ran out of time on pick {last['at_pick']} — "
+            "all of their remaining picks were moved to the end of the draft."
+        )
 
 
 def _render_sidebar(curr_idx, seq):
@@ -75,6 +112,7 @@ def _render_sidebar(curr_idx, seq):
 
             st.session_state.current_pick_index = prev_idx
             st.success("Successfully undid the last draft pick!")
+            reset_pick_deadline()
             save_session_state()
             st.rerun()
 
@@ -147,6 +185,7 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
         if not empty_slots:
             st.warning("All slots are filled for this squad.")
             st.session_state.current_pick_index += 1
+            reset_pick_deadline()
             save_session_state()
             st.rerun()
 
@@ -272,6 +311,13 @@ def render():
     st.title("🏟️ Snake Draft Board")
 
     if curr_idx < len(seq):
+        # Old state file (or fresh draft) without a running clock: start one now.
+        if st.session_state.get("pick_deadline") is None:
+            reset_pick_deadline()
+            save_session_state()
+        _render_timeout_notice()
+        _pick_timer_fragment()
+
         on_clock = seq[curr_idx]["participant"]
         viewer = get_authed_participant()
         is_my_turn = viewer is not None and viewer == on_clock

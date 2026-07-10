@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from fcdraft.draft import reset_pick_deadline
 from fcdraft.gateway import (
     get_authed_participant,
     live_sync_poller,
@@ -126,6 +127,7 @@ def _render_reveal_room():
 
         st.session_state.banned_player_ids = banned_player_ids
         st.session_state.phase = "draft"
+        reset_pick_deadline()
         save_session_state()
         st.rerun()
 

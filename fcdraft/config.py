@@ -33,6 +33,9 @@ ADMIN_LABEL = "🛡️ Admin"
 # How often each browser session polls the state file for remote changes
 LIVE_SYNC_INTERVAL = "2s"
 
+# Seconds each participant has to make a pick before losing their turn
+PICK_TIMER_SECONDS = 90
+
 FORMATIONS = {
     "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
     "4-4-2": ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "ST", "ST"],

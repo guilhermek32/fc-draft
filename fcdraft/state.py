@@ -39,6 +39,10 @@ _SESSION_DEFAULTS = {
     "draft_sequence": [],
     "current_pick_index": 0,
     "draft_history": [],
+    # Absolute unix-epoch deadline for the current pick (None = no timer running).
+    "pick_deadline": None,
+    # Last pick-timer expiry ({"participant", "at_pick"}); shown as a notice on all devices.
+    "last_timeout": None,
 }
 
 
@@ -160,6 +164,8 @@ def save_session_state(path=None):
         "draft_sequence": st.session_state.get("draft_sequence", []),
         "current_pick_index": st.session_state.get("current_pick_index", 0),
         "draft_history": st.session_state.get("draft_history", []),
+        "pick_deadline": st.session_state.get("pick_deadline"),
+        "last_timeout": st.session_state.get("last_timeout"),
     }
     tmp_path = f"{path}.tmp"
     try:
@@ -206,6 +212,8 @@ def load_session_state(path=None):
         st.session_state.draft_sequence = state.get("draft_sequence", [])
         st.session_state.current_pick_index = state.get("current_pick_index", 0)
         st.session_state.draft_history = state.get("draft_history", [])
+        st.session_state.pick_deadline = state.get("pick_deadline")
+        st.session_state.last_timeout = state.get("last_timeout")
         st.session_state.state_version = state.get("state_version", 0)
         return True
     except (AttributeError, TypeError) as e:
@@ -240,6 +248,8 @@ def refresh_shared_state(path=None):
     st.session_state.draft_sequence = state.get("draft_sequence", [])
     st.session_state.current_pick_index = state.get("current_pick_index", 0)
     st.session_state.draft_history = state.get("draft_history", [])
+    st.session_state.pick_deadline = state.get("pick_deadline")
+    st.session_state.last_timeout = state.get("last_timeout")
     st.session_state.state_version = state.get("state_version", 0)
 
 
