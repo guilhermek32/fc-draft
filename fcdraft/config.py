@@ -21,6 +21,11 @@ DEFAULT_BENCH_SLOTS = 5
 BANS_PER_PARTICIPANT = 3
 DOWNLOAD_TIMEOUT = 5
 
+# Password hashing (PBKDF2-HMAC-SHA256)
+PBKDF2_ITERATIONS = 600_000
+SALT_BYTES = 16
+GENERATED_PASSWORD_LENGTH = 8
+
 FORMATIONS = {
     "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
     "4-4-2": ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "ST", "ST"],

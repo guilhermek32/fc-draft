@@ -88,6 +88,7 @@ st.sidebar = MagicMock()
 st.selectbox = MagicMock()
 st.text_input = MagicMock()
 st.button = MagicMock()
+st.checkbox = MagicMock(return_value=False)
 st.columns = lambda *args, **kwargs: [MagicMock() for _ in range(args[0] if isinstance(args[0], int) else len(args[0])) ] if args else [MagicMock(), MagicMock()]
 st.tabs = lambda *args, **kwargs: [MagicMock() for _ in range(len(args[0]) if args else 2)]
 st.set_page_config = MagicMock()

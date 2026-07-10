@@ -42,14 +42,43 @@ def test_setup_phase_renders(mock_streamlit_state):
     setup.render()
 
 
-def test_ban_phase_renders_selection(mock_streamlit_state):
+def test_ban_phase_renders_login_gateway(mock_streamlit_state):
     _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = None
+    ban.render()
+
+
+def test_ban_phase_renders_generated_passwords_panel(mock_streamlit_state):
+    _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = None
+    mock_streamlit_state["generated_passwords"] = {"Alice": "abc23456", "Bob": "def23456"}
+    ban.render()
+
+
+def test_ban_phase_renders_picker_when_authed(mock_streamlit_state):
+    _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = "Alice"
+    ban.render()
+
+
+def test_ban_phase_renders_locked_view(mock_streamlit_state):
+    _seed_draft_state(mock_streamlit_state)
+    mock_streamlit_state["authed_participant"] = "Alice"
+    mock_streamlit_state["ban_submissions"] = {"Alice": True, "Bob": False}
+    mock_streamlit_state["bans"] = {
+        "Alice": [{"player_id": "1", "short_name": "P1", "overall": 88}],
+        "Bob": [],
+    }
     ban.render()
 
 
 def test_ban_phase_renders_reveal_room(mock_streamlit_state):
     _seed_draft_state(mock_streamlit_state)
     mock_streamlit_state["ban_submissions"] = {"Alice": True, "Bob": True}
+    mock_streamlit_state["bans"] = {
+        "Alice": [{"player_id": "1", "short_name": "P1", "overall": 88}],
+        "Bob": [{"player_id": "2", "short_name": "P2", "overall": 85}],
+    }
     ban.render()
 
 

@@ -5,6 +5,7 @@ import random
 import pandas as pd
 import streamlit as st
 
+from fcdraft.auth import generate_password, set_credential
 from fcdraft.config import FORMATIONS, NOTFOUND_IMG_URL
 from fcdraft.data import load_data
 from fcdraft.state import save_session_state
@@ -145,18 +146,34 @@ def render():
         st.write("---")
         st.subheader("Participant Setups", anchor=False)
 
+        auto_passwords = st.checkbox(
+            "🎲 Auto-generate secret passwords",
+            key="auto_passwords",
+            help="Passwords are generated when you start and shown once so you can share them.",
+        )
+
         participant_names = []
         participant_team_names = []
         participant_formations = []
+        participant_passwords = []
 
         for i in range(num_participants):
-            col_name, col_team, col_form = st.columns([2, 2, 1])
+            if auto_passwords:
+                col_name, col_team, col_form = st.columns([2, 2, 1])
+            else:
+                col_name, col_team, col_pass, col_form = st.columns([2, 2, 2, 1])
             with col_name:
                 name = st.text_input(f"Participant {i+1} Name", value=f"Participant {i+1}", key=f"p_name_{i}").strip()
                 participant_names.append(name)
             with col_team:
                 team = st.text_input("Team Name", value=f"{name} FC" if name else f"Team {i+1}", key=f"p_team_{i}").strip()
                 participant_team_names.append(team)
+            if auto_passwords:
+                participant_passwords.append(None)  # generated on start
+            else:
+                with col_pass:
+                    password = st.text_input("Secret Password", type="password", key=f"p_pass_{i}")
+                    participant_passwords.append(password)
             with col_form:
                 form = st.selectbox(f"Formation for Participant {i+1}", list(FORMATIONS.keys()), index=0, key=f"p_form_{i}")
                 participant_formations.append(form)
@@ -166,6 +183,8 @@ def render():
             unique_names = set([n for n in participant_names if n])
             if len(unique_names) != num_participants:
                 st.error("Error: All participant names must be filled out and unique.")
+            elif not auto_passwords and not all(participant_passwords):
+                st.error("Error: Every participant needs a secret password for the blind ban phase.")
             else:
                 st.session_state.participants = participant_names.copy()
                 st.session_state.team_names = {
@@ -177,6 +196,16 @@ def render():
                 }
                 st.session_state.bans = {name: [] for name in participant_names}
                 st.session_state.ban_submissions = {name: False for name in participant_names}
+                st.session_state.auth_credentials = {}
+                if auto_passwords:
+                    participant_passwords = [generate_password() for _ in range(num_participants)]
+                    # Shown once on the ban page for the admin to share; never persisted.
+                    st.session_state.generated_passwords = {
+                        participant_names[j]: participant_passwords[j] for j in range(num_participants)
+                    }
+                for j in range(num_participants):
+                    set_credential(participant_names[j], participant_passwords[j])
+                st.session_state.authed_participant = None
                 st.session_state.drafted_players = {name: {} for name in participant_names}
                 st.session_state.draft_sequence = _build_draft_sequence(participant_names, bench_slots)
                 st.session_state.current_pick_index = 0

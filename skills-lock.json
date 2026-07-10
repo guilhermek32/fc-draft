@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "frontend-design": {
+      "source": "anthropic-agent-skills",
+      "sourceType": "github",
+      "computedHash": "a1b2c3"
+    }
+  }
+}

@@ -114,7 +114,7 @@ def test_save_with_full_player_dicts_is_json_safe(tmp_path, monkeypatch, mock_st
     test_state_file = tmp_path / "draft_state.json"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
-    mock_streamlit_state["bans"] = {"Alice": [player]}
+    mock_streamlit_state["bans"] = {"Alice": [{**player, "player_id": "not_in_db"}]}
     mock_streamlit_state["drafted_players"] = {"Alice": {"ST": {**player, "player_id": "not_in_db"}}}
     app.save_session_state()
 
@@ -124,6 +124,113 @@ def test_save_with_full_player_dicts_is_json_safe(tmp_path, monkeypatch, mock_st
     assert data["bans"]["Alice"][0]["short_name"] == player["short_name"]
     assert "pos_set" not in data["bans"]["Alice"][0]
     assert "pos_set" not in data["drafted_players"]["Alice"]["ST"]
+
+
+def test_bans_saved_as_id_refs_without_player_names(tmp_path, monkeypatch, mock_streamlit_state):
+    """Pre-reveal bans persist as bare player ids (no names on disk) and rehydrate on load."""
+    df = app.load_data()
+    real_player = df.iloc[0].to_dict()
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    mock_streamlit_state["bans"] = {"Alice": [real_player]}
+    app.save_session_state()
+
+    with open(test_state_file) as f:
+        data = json.load(f)
+    assert data["bans"]["Alice"] == [str(real_player["player_id"])]
+    assert real_player["short_name"] not in json.dumps(data["bans"])
+
+    mock_streamlit_state.clear()
+    assert app.load_session_state()
+    loaded = mock_streamlit_state["bans"]["Alice"][0]
+    assert loaded["short_name"] == real_player["short_name"]
+    assert loaded["overall"] == real_player["overall"]
+
+
+def test_auth_credentials_round_trip_without_plaintext(tmp_path, monkeypatch, mock_streamlit_state):
+    """Credentials persist as salted hashes; plaintext passwords never reach disk."""
+    from fcdraft.auth import check_credential, set_credential
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    mock_streamlit_state["auth_credentials"] = {}
+    set_credential("Alice", "hunter2")
+    app.save_session_state()
+
+    assert "hunter2" not in test_state_file.read_text()
+
+    mock_streamlit_state.clear()
+    assert app.load_session_state()
+    assert check_credential("Alice", "hunter2")
+    assert not check_credential("Alice", "wrong")
+
+
+def test_legacy_state_without_credentials_loads(tmp_path, monkeypatch, mock_streamlit_state):
+    """State files written before passwords existed load with empty credentials."""
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    legacy = {"phase": "ban", "participants": ["Alice"], "bans": {"Alice": []}}
+    test_state_file.write_text(json.dumps(legacy))
+
+    assert app.load_session_state()
+    assert mock_streamlit_state["auth_credentials"] == {}
+
+
+def test_refresh_shared_state_picks_up_other_sessions(tmp_path, monkeypatch, mock_streamlit_state):
+    """refresh_shared_state re-reads submissions from disk without touching login state."""
+    from fcdraft.state import refresh_shared_state
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    on_disk = {
+        "phase": "ban",
+        "bans": {"Alice": [], "Bob": []},
+        "ban_submissions": {"Alice": True, "Bob": False},
+        "auth_credentials": {"Alice": {"salt": "00", "hash": "00"}},
+    }
+    test_state_file.write_text(json.dumps(on_disk))
+
+    mock_streamlit_state["ban_submissions"] = {"Alice": False, "Bob": False}
+    mock_streamlit_state["authed_participant"] = "Bob"
+    refresh_shared_state()
+
+    assert mock_streamlit_state["ban_submissions"] == {"Alice": True, "Bob": False}
+    assert mock_streamlit_state["auth_credentials"] == {"Alice": {"salt": "00", "hash": "00"}}
+    assert mock_streamlit_state["authed_participant"] == "Bob"
+
+
+def test_authed_participant_never_persisted(tmp_path, monkeypatch, mock_streamlit_state):
+    """The per-browser login key must not be written to disk."""
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    mock_streamlit_state["authed_participant"] = "Alice"
+    mock_streamlit_state["generated_passwords"] = {"Alice": "abc23456"}
+    app.save_session_state()
+
+    with open(test_state_file) as f:
+        data = json.load(f)
+    assert "authed_participant" not in data
+    assert "generated_passwords" not in data
+    assert "abc23456" not in json.dumps(data)
+
+
+def test_state_file_is_gitignored():
+    """The plaintext-adjacent state file must never be committable."""
+    import subprocess
+    from fcdraft.config import STATE_FILE
+
+    result = subprocess.run(
+        ["git", "check-ignore", STATE_FILE],
+        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        capture_output=True,
+    )
+    assert result.returncode == 0, f"{STATE_FILE} is not gitignored"
 
 
 def test_banned_ids_round_trip_as_set(tmp_path, monkeypatch, mock_streamlit_state):
