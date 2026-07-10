@@ -20,6 +20,15 @@ def get_excluded_ids():
     return get_drafted_ids() | set(st.session_state.banned_player_ids)
 
 
+def get_picked_by():
+    """Who drafted each player: {player_id: participant}."""
+    picked = {}
+    for participant, squad in st.session_state.drafted_players.items():
+        for player in squad.values():
+            picked[str(player["player_id"])] = participant
+    return picked
+
+
 def get_ban_counts():
     """How many participants banned each player: {player_id: count}."""
     counts = {}
@@ -37,20 +46,17 @@ def allowed_positions(position_filter, filter_mode):
 
 
 def search_players(query="", position_filter=None, filter_mode="Strict"):
-    """Available players matching the position and text filters.
+    """Players matching the position and text filters.
 
-    Drafted players are excluded; banned players are kept but flagged in an
-    ``is_banned`` column so the UI can gray them out (they remain undraftable).
-    Results are sorted by overall rating descending (the database is pre-sorted).
+    Banned and already-drafted players are kept but flagged (``is_banned`` /
+    ``picked_by`` columns) so the UI can gray them out and label them; both
+    remain undraftable. Results are sorted by overall rating descending (the
+    database is pre-sorted).
     """
     df = load_data()
     if df.empty:
-        return df.assign(is_banned=False) if "is_banned" not in df.columns else df
+        return df.assign(is_banned=False, picked_by="")
     mask = None
-
-    drafted = get_drafted_ids()
-    if drafted:
-        mask = ~df["player_id"].isin(drafted)
 
     if position_filter and position_filter != "SUB":
         allowed = frozenset(allowed_positions(position_filter, filter_mode))
@@ -67,24 +73,33 @@ def search_players(query="", position_filter=None, filter_mode="Strict"):
 
     results = df[mask] if mask is not None else df
     banned = set(st.session_state.banned_player_ids)
-    return results.assign(is_banned=results["player_id"].isin(banned) if banned else False)
+    picked_by = get_picked_by()
+    return results.assign(
+        is_banned=results["player_id"].isin(banned) if banned else False,
+        picked_by=results["player_id"].map(picked_by).fillna("") if picked_by else "",
+    )
 
 
 def format_player_options(df):
     """Selectbox labels for a search-result frame, preserving row order."""
     has_banned = "is_banned" in df.columns
+    has_picked = "picked_by" in df.columns
     cols = ["short_name", "overall", "player_positions", "club_name"]
     if has_banned:
         cols += ["is_banned", "player_id"]
         ban_counts = get_ban_counts() if df["is_banned"].any() else {}
+    if has_picked:
+        cols += ["picked_by"]
 
-    def _ban_suffix(r):
+    def _suffix(r):
+        if has_picked and r["picked_by"]:
+            return f" 🔒 PICKED by {r['picked_by']}"
         if not (has_banned and r["is_banned"]):
             return ""
         count = ban_counts.get(str(r["player_id"]), 1)
         return f" 🚫 BANNED ×{count}" if count > 1 else " 🚫 BANNED"
 
     return [
-        f"{r['short_name']} ({r['overall']} OVR | {r['player_positions']} | {r['club_name']})" + _ban_suffix(r)
+        f"{r['short_name']} ({r['overall']} OVR | {r['player_positions']} | {r['club_name']})" + _suffix(r)
         for r in df[cols].to_dict("records")
     ]

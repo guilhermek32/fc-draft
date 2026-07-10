@@ -7,7 +7,7 @@ import streamlit as st
 from fcdraft.config import PICK_TIMER_SECONDS
 from fcdraft.data import load_data
 from fcdraft.formations import build_slot_list, get_base_position
-from fcdraft.search import allowed_positions, get_excluded_ids
+from fcdraft.search import allowed_positions, get_excluded_ids, get_picked_by
 from fcdraft.state import refresh_shared_state, save_session_state
 
 
@@ -77,6 +77,10 @@ def commit_pick(picker, slot, player):
         return False
     if str(player["player_id"]) in {str(pid) for pid in st.session_state.banned_player_ids}:
         st.warning(f"{player['short_name']} is banned and cannot be drafted.")
+        return False
+    already_picked_by = get_picked_by().get(str(player["player_id"]))
+    if already_picked_by:
+        st.warning(f"{player['short_name']} was already drafted by {already_picked_by}.")
         return False
 
     record_pick(picker, slot, player, curr_idx + 1, seq[curr_idx]["round"])

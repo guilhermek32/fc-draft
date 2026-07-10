@@ -237,6 +237,21 @@ def test_pick_deadline_persists_across_save_load(tmp_path, monkeypatch, mock_str
     assert mock_streamlit_state["pick_deadline"] == expired
 
 
+def test_commit_pick_aborts_on_already_drafted_player(tmp_path, monkeypatch, mock_streamlit_state):
+    """A player another participant already drafted (now visible in search) cannot be picked."""
+    import json
+    from fcdraft.draft import commit_pick
+
+    state_file = _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
+    on_disk = json.loads(state_file.read_text())
+    on_disk["drafted_players"] = {"Bob": {"ST": {"player_id": "p1", "short_name": "P1", "overall": 90}}}
+    state_file.write_text(json.dumps(on_disk))
+
+    assert commit_pick("Alice", "ST", _player()) is False
+    assert mock_streamlit_state["draft_history"] == []
+    assert "ST" not in mock_streamlit_state["drafted_players"].get("Alice", {})
+
+
 def test_auto_draft_remaining(mock_streamlit_state):
     """Verify that auto_draft_remaining automatically drafts matching players for all empty slots."""
     # Setup mock draft sequence and participants

@@ -211,6 +211,8 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
             count = get_ban_counts().get(str(p_dict["player_id"]), 1)
             times = f"{count} times" if count > 1 else "once"
             st.error(f"🚫 {p_dict['short_name']} was banned {times} in this draft and cannot be drafted.")
+        elif p_dict and p_dict.get("picked_by"):
+            st.error(f"🔒 {p_dict['short_name']} was already drafted by **{p_dict['picked_by']}**.")
         elif p_dict:
             if st.button(f"✅ Draft {p_dict['short_name']} for {selected_slot}", type="primary", use_container_width=True):
                 if commit_pick(picker, selected_slot, p_dict):
@@ -223,12 +225,14 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
                 p_dict, base_pos, width=140, height=210, padding=12,
                 rating_size=13, pos_size=14, face_size=90, name_size=14, club_size=10,
                 rating_padding="2px 6px", margin_bottom="15px",
-                banned=bool(p_dict.get("is_banned")),
+                banned=bool(p_dict.get("is_banned") or p_dict.get("picked_by")),
             ), unsafe_allow_html=True)
             if p_dict.get("is_banned"):
                 count = get_ban_counts().get(str(p_dict["player_id"]), 1)
                 by = f"by **{count} participants**" if count > 1 else "by **1 participant**"
                 st.warning(f"🚫 This player was **banned** {by} during the blind ban phase.")
+            elif p_dict.get("picked_by"):
+                st.warning(f"🔒 This player was already drafted by **{p_dict['picked_by']}**.")
             _render_stat_grid(p_dict)
         else:
             st.info("Select a player from the dropdown to see their detailed profile here.")

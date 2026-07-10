@@ -41,13 +41,15 @@ def draft_player_dialog(slot, picker):
         st.html(render_preview_card(
             p_dict, base_pos, width=120, height=180, padding=10,
             rating_size=11, pos_size=12, face_size=70, name_size=12, club_size=9,
-            border_radius="8px", banned=bool(p_dict.get("is_banned")),
+            border_radius="8px", banned=bool(p_dict.get("is_banned") or p_dict.get("picked_by")),
         ))
 
         if p_dict.get("is_banned"):
             count = get_ban_counts().get(str(p_dict["player_id"]), 1)
             times = f"{count} times" if count > 1 else "once"
             st.error(f"🚫 {p_dict['short_name']} was banned {times} in this draft and cannot be drafted.")
+        elif p_dict.get("picked_by"):
+            st.error(f"🔒 {p_dict['short_name']} was already drafted by **{p_dict['picked_by']}**.")
         elif st.button("✅ Confirm Draft", type="primary", use_container_width=True):
             if commit_pick(picker, slot, p_dict):
                 st.query_params.pop("draft_slot", None)
