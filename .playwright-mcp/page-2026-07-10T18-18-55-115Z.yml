@@ -1,0 +1,317 @@
+- generic [active] [ref=f9e1]:
+  - generic:
+    - generic:
+      - link "Ir para o conteúdo principal" [ref=f9e2] [cursor=pointer]
+      - link "Ajuda sobre acessibilidade" [ref=f9e3] [cursor=pointer]:
+        - /url: https://support.google.com/websearch/answer/181196?hl=pt-BR
+  - generic [ref=f9e8]:
+    - search [ref=f9e9]:
+      - generic [ref=f9e11]:
+        - link "Ir para a página inicial do Google" [ref=f9e13] [cursor=pointer]:
+          - /url: https://www.google.com/webhp?hl=pt-BR&sa=X&ved=0ahUKEwiWp42v3MiVAxWippUCHcfqEfgQPAgI
+        - generic [ref=f9e21]:
+          - generic [ref=f9e22]:
+            - combobox "Pesquisar" [ref=f9e25]: EA FC 26 players dataset CSV 2026 Kaggle SoFIFA EA FC 26 players dataset CSV 2026 Kaggle SoFIFA
+            - generic [ref=f9e26]:
+              - button "Limpar" [ref=f9e28] [cursor=pointer]
+              - generic [ref=f9e33]:
+                - button "Ferramentas de inserção de texto" [ref=f9e34] [cursor=pointer]
+                - button "Pesquisar por voz" [ref=f9e38] [cursor=pointer]
+                - button "Pesquisa por imagem" [ref=f9e41] [cursor=pointer]
+          - button "Pesquisar" [ref=f9e44] [cursor=pointer]
+    - generic [ref=f9e49]:
+      - button "Configurações" [ref=f9e51] [cursor=pointer]
+      - button "Compartilhar" [ref=f9e57] [cursor=pointer]
+      - generic [ref=f9e63]:
+        - button "Google Apps" [ref=f9e65] [cursor=pointer]
+        - link "Fazer login" [ref=f9e70] [cursor=pointer]:
+          - /url: https://accounts.google.com/ServiceLogin?hl=pt-BR&passive=true&continue=https://www.google.com/search%3Fq%3DEA%2BFC%2B26%2Bplayers%2Bdataset%2BCSV%2B2026%2BKaggle%2BSoFIFA&ec=futura_srp_og_si_72236_p
+  - generic [ref=f9e72]:
+    - navigation [ref=f9e78]:
+      - generic [ref=f9e84]:
+        - list [ref=f9e85]:
+          - listitem [ref=f9e86]:
+            - link "Modo IA" [ref=f9e89] [cursor=pointer]:
+              - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&udm=50&fbs=ABfTbFVGaQeaqnsRPI5sOMG32Ksz_Qb61Fj5ZtxC2tjOZZgQR5ciZaQ31W5Tb7ABaDpcXvGlll6j_y2KAs3SZB6lWa8myhEcvr6aHfRfcHOPDP661gP2F5x8820UHvuQ3T1pz-BJwXd8uDDX5V8KQPbpQnnh2DbBcFSfoWlq3I5eeuEnhParCyJN2YYUCeNbNrwQpbkI8Ng4NWNUznfJLkguCNwi3KTb4w&aep=1&ntc=1&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ2J8OegQIEBAD
+          - listitem [ref=f9e93]:
+            - link "Tudo" [disabled] [ref=f9e94]
+          - listitem [ref=f9e97]:
+            - link "Notícias" [ref=f9e98] [cursor=pointer]:
+              - /url: /search?sca_esv=a742e9889a0b108d&q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&tbm=nws&source=lnms&fbs=ABfTbFVGaQeaqnsRPI5sOMG32Ksz_Qb61Fj5ZtxC2tjOZZgQR5ciZaQ31W5Tb7ABaDpcXvGlll6j_y2KAs3SZB6lWa8myhEcvr6aHfRfcHOPDP661gP2F5x8820UHvuQ3T1pz-BJwXd8uDDX5V8KQPbpQnnh2DbBcFSfoWlq3I5eeuEnhParCyJN2YYUCeNbNrwQpbkI8Ng4NWNUznfJLkguCNwi3KTb4w&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ0pQJegQIFhAB
+          - listitem [ref=f9e101]:
+            - link "Vídeos" [ref=f9e102] [cursor=pointer]:
+              - /url: /search?sca_esv=a742e9889a0b108d&udm=7&fbs=ABfTbFVGaQeaqnsRPI5sOMG32Ksz_Qb61Fj5ZtxC2tjOZZgQR5ciZaQ31W5Tb7ABaDpcXvGlll6j_y2KAs3SZB6lWa8myhEcvr6aHfRfcHOPDP661gP2F5x8820UHvuQ3T1pz-BJwXd8uDDX5V8KQPbpQnnh2DbBcFSfoWlq3I5eeuEnhParCyJN2YYUCeNbNrwQpbkI8Ng4NWNUznfJLkguCNwi3KTb4w&q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQtKgLegQIFRAB
+          - listitem [ref=f9e105]:
+            - link "Shopping" [ref=f9e106] [cursor=pointer]:
+              - /url: /search?sca_esv=a742e9889a0b108d&udm=28&fbs=ABfTbFVGaQeaqnsRPI5sOMG32Ksz_Qb61Fj5ZtxC2tjOZZgQR5ciZaQ31W5Tb7ABaDpcXvGlll6j_y2KAs3SZB6lWa8myhEcvr6aHfRfcHOPDP661gP2F5x8820UHvuQ3T1pz-BJwXd8uDDX5V8KQPbpQnnh2DbBcFSfoWlq3I5eeuEnhParCyJN2YYUCeNbNrwQpbkI8Ng4NWNUznfJLkguCNwi3KTb4w&q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&ved=1t:220175&ictx=111
+          - listitem [ref=f9e109]:
+            - link "Imagens" [ref=f9e110] [cursor=pointer]:
+              - /url: /search?sca_esv=a742e9889a0b108d&udm=2&fbs=ABfTbFVGaQeaqnsRPI5sOMG32Ksz_Qb61Fj5ZtxC2tjOZZgQR5ciZaQ31W5Tb7ABaDpcXvGlll6j_y2KAs3SZB6lWa8myhEcvr6aHfRfcHOPDP661gP2F5x8820UHvuQ3T1pz-BJwXd8uDDX5V8KQPbpQnnh2DbBcFSfoWlq3I5eeuEnhParCyJN2YYUCeNbNrwQpbkI8Ng4NWNUznfJLkguCNwi3KTb4w&q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQtKgLegQIExAB
+          - listitem [ref=f9e113]:
+            - link "Vídeos curtos" [ref=f9e114] [cursor=pointer]:
+              - /url: /search?sca_esv=a742e9889a0b108d&udm=39&fbs=ABfTbFVGaQeaqnsRPI5sOMG32Ksz_Qb61Fj5ZtxC2tjOZZgQR5ciZaQ31W5Tb7ABaDpcXvGlll6j_y2KAs3SZB6lWa8myhEcvr6aHfRfcHOPDP661gP2F5x8820UHvuQ3T1pz-BJwXd8uDDX5V8KQPbpQnnh2DbBcFSfoWlq3I5eeuEnhParCyJN2YYUCeNbNrwQpbkI8Ng4NWNUznfJLkguCNwi3KTb4w&q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQs6gLegQIEhAB
+          - listitem [ref=f9e117]:
+            - button [ref=f9e118] [cursor=pointer]:
+              - generic "Mais filtros" [ref=f9e119]: Mais
+        - button "Ferramentas" [ref=f9e126] [cursor=pointer]
+    - heading "Resultados da pesquisa" [level=1] [ref=f9e133]
+    - main [ref=f9e139]:
+      - generic [ref=f9e143]:
+        - generic [ref=f9e146]:
+          - heading "Web results" [level=2] [ref=f9e147]
+          - generic [ref=f9e148]:
+            - generic [ref=f9e151]:
+              - link "FC 26 (FIFA 26) Player Data Kaggle https://www.kaggle.com › rovnez" [ref=f9e153] [cursor=pointer]:
+                - /url: https://www.kaggle.com/datasets/rovnez/fc-26-fifa-26-player-data
+                - heading "FC 26 (FIFA 26) Player Data" [level=3] [ref=f9e154]
+                - generic [ref=f9e160]:
+                  - generic [ref=f9e161]: Kaggle
+                  - generic [ref=f9e163]: https://www.kaggle.com › rovnez
+              - generic [ref=f9e165]:
+                - generic [ref=f9e166]: ·
+                - link "Traduzir esta página" [ref=f9e167] [cursor=pointer]:
+                  - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/rovnez/fc-26-fifa-26-player-data&hl=pt-BR&sl=en&tl=pt-BR&client=search
+              - button "Sobre este resultado" [ref=f9e170] [cursor=pointer]
+            - generic [ref=f9e177]:
+              - text: This
+              - emphasis [ref=f9e178]: dataset
+              - text: contains detailed
+              - emphasis [ref=f9e179]: player
+              - text: info from
+              - emphasis [ref=f9e180]: EA
+              - text: Sport's
+              - emphasis [ref=f9e181]: FC 26
+              - text: ", curated by web scraping the"
+              - emphasis [ref=f9e182]: sofifa
+              - text: .com. This
+              - emphasis [ref=f9e183]: dataset
+              - text: is intended for educational and ...
+        - generic [ref=f9e194]:
+          - heading "Pensando Pesquisando Pensando um pouco mais" [level=2] [ref=f9e198]:
+            - generic [ref=f9e199]:
+              - generic [ref=f9e200]: Pensando
+              - generic [ref=f9e202]: Pesquisando
+              - generic [ref=f9e204]: Pensando um pouco mais
+          - progressbar "Gerando" [ref=f9e207]
+        - generic [ref=f9e260]:
+          - heading "Web results" [level=2] [ref=f9e261]
+          - generic [ref=f9e262]:
+            - generic [ref=f9e265]:
+              - link "EA FC Players Data (sourced from SoFIFA.com) Kaggle https://www.kaggle.com › datasets" [ref=f9e267] [cursor=pointer]:
+                - /url: https://www.kaggle.com/datasets/ghimireprashant/fifa-players-data
+                - heading "EA FC Players Data (sourced from SoFIFA.com)" [level=3] [ref=f9e268]
+                - generic [ref=f9e274]:
+                  - generic [ref=f9e275]: Kaggle
+                  - generic [ref=f9e277]: https://www.kaggle.com › datasets
+              - generic [ref=f9e279]:
+                - generic [ref=f9e280]: ·
+                - link "Traduzir esta página" [ref=f9e281] [cursor=pointer]:
+                  - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/ghimireprashant/fifa-players-data&hl=pt-BR&sl=en&tl=pt-BR&client=search
+              - button "Sobre este resultado" [ref=f9e284] [cursor=pointer]
+            - generic [ref=f9e291]:
+              - emphasis [ref=f9e292]: FIFA 23 all 18k+ player data scraped from sofifa.com
+              - text: . Contains player basic informations and stats. Players are sorted desc order based on their overall rating.
+        - generic [ref=f9e296]:
+          - generic [ref=f9e299]:
+            - link "EAFC26 Player Database Kaggle https://www.kaggle.com › flynn28" [ref=f9e301] [cursor=pointer]:
+              - /url: https://www.kaggle.com/datasets/flynn28/eafc26-player-database
+              - heading "EAFC26 Player Database" [level=3] [ref=f9e302]
+              - generic [ref=f9e308]:
+                - generic [ref=f9e309]: Kaggle
+                - generic [ref=f9e311]: https://www.kaggle.com › flynn28
+            - generic [ref=f9e313]:
+              - generic [ref=f9e314]: ·
+              - link "Traduzir esta página" [ref=f9e315] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/flynn28/eafc26-player-database&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e318] [cursor=pointer]
+          - generic [ref=f9e325]:
+            - text: Complete
+            - emphasis [ref=f9e326]: FC26 Player Database
+            - text: ". Split into 3 files, based on gender (men, women, combined). All files have the following header: ID,Rank,Name,GENDER,OVR,PAC ..."
+        - generic [ref=f9e330]:
+          - generic [ref=f9e333]:
+            - link "EA Sports FC 26 Player Ratings Kaggle https://www.kaggle.com › justdhia" [ref=f9e335] [cursor=pointer]:
+              - /url: https://www.kaggle.com/datasets/justdhia/ea-sports-fc-26-player-ratings
+              - heading "EA Sports FC 26 Player Ratings" [level=3] [ref=f9e336]
+              - generic [ref=f9e342]:
+                - generic [ref=f9e343]: Kaggle
+                - generic [ref=f9e345]: https://www.kaggle.com › justdhia
+            - generic [ref=f9e347]:
+              - generic [ref=f9e348]: ·
+              - link "Traduzir esta página" [ref=f9e349] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/justdhia/ea-sports-fc-26-player-ratings&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e352] [cursor=pointer]
+          - generic [ref=f9e359]:
+            - text: EA Sports FC 26 – Player Ratings Dataset.
+            - emphasis [ref=f9e360]: Player ratings and attributes for 16,228 players
+            - text: scraped from the official EA Sports FC 26 ratings page.
+        - generic [ref=f9e364]:
+          - generic [ref=f9e367]:
+            - link "EAFC26 Player Database Kaggle https://www.kaggle.com › data" [ref=f9e369] [cursor=pointer]:
+              - /url: https://www.kaggle.com/datasets/flynn28/eafc26-player-database/data
+              - heading "EAFC26 Player Database" [level=3] [ref=f9e370]
+              - generic [ref=f9e376]:
+                - generic [ref=f9e377]: Kaggle
+                - generic [ref=f9e379]: https://www.kaggle.com › data
+            - generic [ref=f9e381]:
+              - generic [ref=f9e382]: ·
+              - link "Traduzir esta página" [ref=f9e383] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/flynn28/eafc26-player-database/data&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e386] [cursor=pointer]
+          - generic [ref=f9e393]:
+            - text: Complete
+            - emphasis [ref=f9e394]: FC26 Player Database
+            - text: ". Split into 3 files, based on gender (men, women, combined). All files have the following header: ID,Rank,Name,GENDER,OVR,PAC ..."
+        - generic [ref=f9e398]:
+          - generic [ref=f9e401]:
+            - link "FC 26 Player Stats Kaggle https://www.kaggle.com › datasets" [ref=f9e403] [cursor=pointer]:
+              - /url: https://www.kaggle.com/datasets/talhademirezen/fc-26-player-stats
+              - heading "FC 26 Player Stats" [level=3] [ref=f9e404]
+              - generic [ref=f9e410]:
+                - generic [ref=f9e411]: Kaggle
+                - generic [ref=f9e413]: https://www.kaggle.com › datasets
+            - generic [ref=f9e415]:
+              - generic [ref=f9e416]: ·
+              - link "Traduzir esta página" [ref=f9e417] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/talhademirezen/fc-26-player-stats&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e420] [cursor=pointer]
+          - generic [ref=f9e427]:
+            - text: This
+            - emphasis [ref=f9e428]: dataset
+            - text: contains detailed
+            - emphasis [ref=f9e429]: player
+            - text: ratings and attributes extracted from the official
+            - emphasis [ref=f9e430]: EA
+            - text: SPORTS
+            - emphasis [ref=f9e431]: FC
+            - text: Ratings website. It includes male
+            - emphasis [ref=f9e432]: player
+            - text: data, ...
+        - generic [ref=f9e436]:
+          - generic [ref=f9e439]:
+            - link "ismailoksuz/EAFC26-DataHub GitHub https://github.com › ismailoksuz" [ref=f9e441] [cursor=pointer]:
+              - /url: https://github.com/ismailoksuz/EAFC26-DataHub
+              - heading "ismailoksuz/EAFC26-DataHub" [level=3] [ref=f9e442]
+              - generic [ref=f9e448]:
+                - generic [ref=f9e449]: GitHub
+                - generic [ref=f9e451]: https://github.com › ismailoksuz
+            - generic [ref=f9e453]:
+              - generic [ref=f9e454]: ·
+              - link "Traduzir esta página" [ref=f9e455] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://github.com/ismailoksuz/EAFC26-DataHub&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e458] [cursor=pointer]
+          - generic [ref=f9e465]:
+            - text: "The data is sourced from a dataset available on Kaggle:"
+            - emphasis [ref=f9e466]: FC 26 (FIFA 26) Player Data
+            - text: . The primary data file, data/players.csv , contains over 18,000 player ...
+        - generic [ref=f9e470]:
+          - generic [ref=f9e473]:
+            - link "FIFA Players Dataset Kaggle https://www.kaggle.com › datasets" [ref=f9e475] [cursor=pointer]:
+              - /url: https://www.kaggle.com/datasets/luisfucros/fifa-players
+              - heading "FIFA Players Dataset" [level=3] [ref=f9e476]
+              - generic [ref=f9e482]:
+                - generic [ref=f9e483]: Kaggle
+                - generic [ref=f9e485]: https://www.kaggle.com › datasets
+            - generic [ref=f9e487]:
+              - generic [ref=f9e488]: ·
+              - link "Traduzir esta página" [ref=f9e489] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://www.kaggle.com/datasets/luisfucros/fifa-players&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e492] [cursor=pointer]
+          - generic [ref=f9e499]:
+            - text: These datasets contain detailed
+            - emphasis [ref=f9e500]: player
+            - text: statistics and attributes for football players as featured in the Sofifa database
+        - generic [ref=f9e504]:
+          - generic [ref=f9e507]:
+            - 'link "SoFIFA: Players - FC 26 - Jul 8, 2026 SoFIFA https://sofifa.com" [ref=f9e509] [cursor=pointer]':
+              - /url: https://sofifa.com/
+              - 'heading "SoFIFA: Players - FC 26 - Jul 8, 2026" [level=3] [ref=f9e510]'
+              - generic [ref=f9e516]:
+                - generic [ref=f9e517]: SoFIFA
+                - generic [ref=f9e519]: https://sofifa.com
+            - generic [ref=f9e521]:
+              - generic [ref=f9e522]: ·
+              - link "Traduzir esta página" [ref=f9e523] [cursor=pointer]:
+                - /url: https://translate.google.com/translate?u=https://sofifa.com/&hl=pt-BR&sl=en&tl=pt-BR&client=search
+            - button "Sobre este resultado" [ref=f9e526] [cursor=pointer]
+          - generic [ref=f9e533]:
+            - emphasis [ref=f9e534]: FC 26 Jul 8, 2026
+            - text: "· K. Koné. #1. 80 Overall rating. 84 Potential · N. De Cat. #2. 68 Overall rating. 87 Potential · A. Nusa. #3. 78 Overall rating. 88 Potential · J ..."
+      - generic [ref=f9e536]:
+        - generic [ref=f9e541]:
+          - heading "Outras pessoas pesquisaram" [level=2] [ref=f9e543]
+          - generic [ref=f9e545]:
+            - generic [ref=f9e546]:
+              - link "Ea fc 25 database download" [ref=f9e550] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Ea+fc+25+database+download&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAgbEAE
+              - link "Api ea fc 26" [ref=f9e564] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Api+ea+fc+26&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAg2EAE
+              - link "Ea fc 26 ids" [ref=f9e578] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Ea+fc+26+ids&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAg0EAE
+              - link "Career ea fc 25" [ref=f9e592] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Career+ea+fc+25&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAgvEAE
+            - generic [ref=f9e603]:
+              - link "Api ea fc 25" [ref=f9e607] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Api+ea+fc+25&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAgpEAE
+              - link "Tracker ea fc 26" [ref=f9e621] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Tracker+ea+fc+26&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAglEAE
+              - link "Ea fc api" [ref=f9e635] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Ea+fc+api&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAgjEAE
+              - link "Gerador de carreira fc 26" [ref=f9e649] [cursor=pointer]:
+                - /url: /search?sca_esv=a742e9889a0b108d&q=Gerador+de+carreira+fc+26&sa=X&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ1QJ6BAghEAE
+        - navigation [ref=f9e660]:
+          - heading "Navegação nas páginas" [level=1] [ref=f9e661]
+          - text: "1"
+          - link "Page 2" [ref=f9e664] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=10&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAE
+            - text: "2"
+          - link "Page 3" [ref=f9e666] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=20&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAG
+            - text: "3"
+          - link "Page 4" [ref=f9e668] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=30&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAI
+            - text: "4"
+          - link "Page 5" [ref=f9e670] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=40&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAK
+            - text: "5"
+          - link "Page 6" [ref=f9e672] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=50&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAM
+            - text: "6"
+          - link "Page 7" [ref=f9e674] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=60&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAO
+            - text: "7"
+          - link "Page 8" [ref=f9e676] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=70&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAQ
+            - text: "8"
+          - link "Page 9" [ref=f9e678] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=80&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAS
+            - text: "9"
+          - link "Page 10" [ref=f9e680] [cursor=pointer]:
+            - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=90&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8tMDegQIOxAU
+            - text: "10"
+          - heading [level=2] [ref=f9e682]:
+            - link "Mais" [ref=f9e683] [cursor=pointer]:
+              - /url: /search?q=EA+FC+26+players+dataset+CSV+2026+Kaggle+SoFIFA&sca_esv=a742e9889a0b108d&ei=jTdRatYsos3WxA_H1cfADw&start=10&sa=N&sstk=AU9db-BZy9EhIWDAIdcS9tRX8BV0WwZtac7YUKSZaqsLsN-ZvD9YPQQOjzRXSdku-e8jvOeeRBHkU1I5IZEk1GzAbf7g-BQJ2spEzg&ved=2ahUKEwiWp42v3MiVAxWippUCHcfqEfgQ8NMDegQIOxAW
+      - navigation
+    - contentinfo [ref=f9e686]:
+      - heading "Links do rodapé" [level=1] [ref=f9e687]
+      - generic [ref=f9e691]:
+        - generic [ref=f9e693]:
+          - text: Brasil
+          - generic [ref=f9e695]:
+            - button "57075 - Cidade Universitária, Maceió - AL - Do seu endereço IP" [ref=f9e697] [cursor=pointer]:
+              - generic [ref=f9e698]: 57075 - Cidade Universitária, Maceió - AL
+              - generic [ref=f9e700]:
+                - text: "-"
+                - generic [ref=f9e701]: Do seu endereço IP
+            - text: "-"
+            - button "Atualizar local" [ref=f9e703] [cursor=pointer]
+        - generic [ref=f9e706]:
+          - link "Ajuda" [ref=f9e707] [cursor=pointer]:
+            - /url: https://support.google.com/websearch/?p=ws_results_help&hl=pt-BR&fg=1
+          - link "Enviar feedback" [ref=f9e708] [cursor=pointer]:
+            - /url: "#"
+          - link "Privacidade" [ref=f9e709] [cursor=pointer]:
+            - /url: https://policies.google.com/privacy?hl=pt-BR&fg=1
+          - link "Termos" [ref=f9e710] [cursor=pointer]:
+            - /url: https://policies.google.com/terms?hl=pt-BR&fg=1

@@ -49,6 +49,20 @@ def test_search_players_flexible_position():
             break
     assert lb_found, "Flexible mode should return LB players for LWB filter"
 
+
+def test_search_uses_normalized_club_position():
+    """Current on-field club role overrides broader listed positions."""
+    df = app.load_data()
+    valverde = df[df["player_id"] == "239053"].iloc[0]
+
+    assert valverde["club_position"] == "RDM"
+    assert valverde["pos_list"] == ["CDM"]
+
+    cdm_results = app.search_players(position_filter="CDM", filter_mode="Strict")
+    cm_results = app.search_players(position_filter="CM", filter_mode="Strict")
+    assert "239053" in set(cdm_results["player_id"])
+    assert "239053" not in set(cm_results["player_id"])
+
 def test_search_keeps_banned_players_flagged(mock_streamlit_state):
     """Banned players stay in search results, flagged and labeled."""
     df = app.load_data()

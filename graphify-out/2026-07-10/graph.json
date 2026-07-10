@@ -57,7 +57,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_auth",
-      "community": 8,
+      "community": 13,
       "norm_label": "auth.py"
     },
     {
@@ -67,7 +67,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "fcdraft_auth_generate_password",
-      "community": 8,
+      "community": 15,
       "norm_label": "generate_password()"
     },
     {
@@ -77,7 +77,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "fcdraft_auth_hash_password",
-      "community": 8,
+      "community": 13,
       "norm_label": "hash_password()"
     },
     {
@@ -87,7 +87,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "fcdraft_auth_verify_password",
-      "community": 8,
+      "community": 13,
       "norm_label": "verify_password()"
     },
     {
@@ -97,7 +97,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "fcdraft_auth_set_credential",
-      "community": 8,
+      "community": 16,
       "norm_label": "set_credential()"
     },
     {
@@ -107,7 +107,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "fcdraft_auth_check_credential",
-      "community": 8,
+      "community": 16,
       "norm_label": "check_credential()"
     },
     {
@@ -127,7 +127,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "fcdraft_auth_revoke_auth_token",
-      "community": 9,
+      "community": 4,
       "norm_label": "revoke_auth_token()"
     },
     {
@@ -147,7 +147,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_1",
-      "community": 8,
+      "community": 13,
       "norm_label": "participant password hashing and credential checks.  only salted pbkdf2 hashes"
     },
     {
@@ -157,7 +157,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_20",
-      "community": 8,
+      "community": 15,
       "norm_label": "random, easy-to-share secret password."
     },
     {
@@ -167,7 +167,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_25",
-      "community": 8,
+      "community": 13,
       "norm_label": "hash a password, generating a fresh salt when none is given.      returns (sal"
     },
     {
@@ -177,7 +177,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_38",
-      "community": 8,
+      "community": 13,
       "norm_label": "constant-time check of a password against a stored salt/hash pair."
     },
     {
@@ -187,7 +187,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_47",
-      "community": 8,
+      "community": 16,
       "norm_label": "store the salted hash for a participant in session state."
     },
     {
@@ -197,7 +197,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_53",
-      "community": 8,
+      "community": 16,
       "norm_label": "true if the password matches the participant's stored credential."
     },
     {
@@ -217,7 +217,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "fcdraft_auth_rationale_78",
-      "community": 9,
+      "community": 4,
       "norm_label": "remove a token from the map (no-op for unknown/none)."
     },
     {
@@ -277,7 +277,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "fcdraft_cards_render_empty_card",
-      "community": 11,
+      "community": 0,
       "norm_label": "render_empty_card()"
     },
     {
@@ -347,34 +347,24 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_data",
-      "community": 13,
+      "community": 0,
       "norm_label": "data.py"
-    },
-    {
-      "label": "_draft_positions()",
-      "file_type": "code",
-      "source_file": "fcdraft/data.py",
-      "source_location": "L26",
-      "_origin": "ast",
-      "id": "fcdraft_data_draft_positions",
-      "community": 13,
-      "norm_label": "_draft_positions()"
     },
     {
       "label": "_load_data_uncached()",
       "file_type": "code",
       "source_file": "fcdraft/data.py",
-      "source_location": "L35",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "fcdraft_data_load_data_uncached",
-      "community": 13,
+      "community": 0,
       "norm_label": "_load_data_uncached()"
     },
     {
       "label": "load_data()",
       "file_type": "code",
       "source_file": "fcdraft/data.py",
-      "source_location": "L70",
+      "source_location": "L50",
       "_origin": "ast",
       "id": "fcdraft_data_load_data",
       "community": 0,
@@ -384,20 +374,20 @@
       "label": "_players_by_id_uncached()",
       "file_type": "code",
       "source_file": "fcdraft/data.py",
-      "source_location": "L79",
+      "source_location": "L59",
       "_origin": "ast",
       "id": "fcdraft_data_players_by_id_uncached",
-      "community": 13,
+      "community": 0,
       "norm_label": "_players_by_id_uncached()"
     },
     {
       "label": "get_player_by_id()",
       "file_type": "code",
       "source_file": "fcdraft/data.py",
-      "source_location": "L84",
+      "source_location": "L64",
       "_origin": "ast",
       "id": "fcdraft_data_get_player_by_id",
-      "community": 13,
+      "community": 0,
       "norm_label": "get_player_by_id()"
     },
     {
@@ -407,27 +397,17 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_data_rationale_1",
-      "community": 13,
+      "community": 0,
       "norm_label": "player database loading and cleaning."
-    },
-    {
-      "label": "Use current club role when on-field; fall back for substitutes/reserves.",
-      "file_type": "rationale",
-      "source_file": "fcdraft/data.py",
-      "source_location": "L27",
-      "_origin": "ast",
-      "id": "fcdraft_data_rationale_27",
-      "community": 13,
-      "norm_label": "use current club role when on-field; fall back for substitutes/reserves."
     },
     {
       "label": "Return a single player's row as a dict, or None if the id is unknown.",
       "file_type": "rationale",
       "source_file": "fcdraft/data.py",
-      "source_location": "L85",
+      "source_location": "L65",
       "_origin": "ast",
-      "id": "fcdraft_data_rationale_85",
-      "community": 13,
+      "id": "fcdraft_data_rationale_65",
+      "community": 0,
       "norm_label": "return a single player's row as a dict, or none if the id is unknown."
     },
     {
@@ -497,7 +477,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "fcdraft_draft_commit_pick",
-      "community": 6,
+      "community": 4,
       "norm_label": "commit_pick()"
     },
     {
@@ -557,7 +537,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "fcdraft_draft_rationale_59",
-      "community": 6,
+      "community": 4,
       "norm_label": "validate against the freshest shared state, then record and save a pick."
     },
     {
@@ -597,7 +577,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "fcdraft_formations_get_formation_slots",
-      "community": 11,
+      "community": 0,
       "norm_label": "get_formation_slots()"
     },
     {
@@ -617,7 +597,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "fcdraft_formations_build_slot_list",
-      "community": 4,
+      "community": 0,
       "norm_label": "build_slot_list()"
     },
     {
@@ -637,7 +617,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "fcdraft_formations_rationale_28",
-      "community": 4,
+      "community": 0,
       "norm_label": "starting-xi slot names for a formation plus numbered sub slots."
     },
     {
@@ -867,7 +847,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_main",
-      "community": 9,
+      "community": 0,
       "norm_label": "main.py"
     },
     {
@@ -887,7 +867,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "fcdraft_main_handle_draft_slot_query_param",
-      "community": 9,
+      "community": 0,
       "norm_label": "_handle_draft_slot_query_param()"
     },
     {
@@ -897,7 +877,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "fcdraft_main_run",
-      "community": 9,
+      "community": 0,
       "norm_label": "run()"
     },
     {
@@ -907,7 +887,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_main_rationale_1",
-      "community": 9,
+      "community": 0,
       "norm_label": "app entrypoint: page config, session bootstrap, and phase dispatch."
     },
     {
@@ -927,7 +907,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "fcdraft_main_rationale_37",
-      "community": 9,
+      "community": 0,
       "norm_label": "open the draft dialog when a pitch card was clicked (?draft_slot=...)."
     },
     {
@@ -1087,7 +1067,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_phases_completed",
-      "community": 11,
+      "community": 0,
       "norm_label": "completed.py"
     },
     {
@@ -1097,7 +1077,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "fcdraft_phases_completed_build_exports",
-      "community": 11,
+      "community": 0,
       "norm_label": "_build_exports()"
     },
     {
@@ -1107,7 +1087,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "fcdraft_phases_completed_render",
-      "community": 11,
+      "community": 0,
       "norm_label": "render()"
     },
     {
@@ -1117,7 +1097,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_phases_completed_rationale_1",
-      "community": 11,
+      "community": 0,
       "norm_label": "phase 4: final squads, exports, and reset."
     },
     {
@@ -1127,7 +1107,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "fcdraft_phases_completed_rationale_14",
-      "community": 11,
+      "community": 0,
       "norm_label": "roster rows (for csv) and the plain-text summary for every participant."
     },
     {
@@ -1287,7 +1267,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_phases_setup",
-      "community": 8,
+      "community": 15,
       "norm_label": "setup.py"
     },
     {
@@ -1297,7 +1277,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_minimal_player_from_row",
-      "community": 8,
+      "community": 15,
       "norm_label": "_minimal_player_from_row()"
     },
     {
@@ -1307,7 +1287,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_import_previous_draft",
-      "community": 8,
+      "community": 15,
       "norm_label": "_import_previous_draft()"
     },
     {
@@ -1317,7 +1297,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_build_draft_sequence",
-      "community": 8,
+      "community": 15,
       "norm_label": "_build_draft_sequence()"
     },
     {
@@ -1327,7 +1307,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_render",
-      "community": 8,
+      "community": 15,
       "norm_label": "render()"
     },
     {
@@ -1337,7 +1317,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_rationale_1",
-      "community": 8,
+      "community": 15,
       "norm_label": "phase 1: participants, formations, and previous-draft import."
     },
     {
@@ -1347,7 +1327,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_rationale_17",
-      "community": 8,
+      "community": 15,
       "norm_label": "fallback player dict for imported names not found in the master database."
     },
     {
@@ -1357,7 +1337,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_rationale_39",
-      "community": 8,
+      "community": 15,
       "norm_label": "reconstruct completed-draft state from an exported roster csv."
     },
     {
@@ -1367,7 +1347,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "fcdraft_phases_setup_rationale_89",
-      "community": 8,
+      "community": 15,
       "norm_label": "snake-order pick sequence over 11 + bench rounds."
     },
     {
@@ -1377,7 +1357,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_pitch",
-      "community": 11,
+      "community": 0,
       "norm_label": "pitch.py"
     },
     {
@@ -1387,7 +1367,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "fcdraft_pitch_get_horizontal_weight",
-      "community": 11,
+      "community": 0,
       "norm_label": "_get_horizontal_weight()"
     },
     {
@@ -1397,7 +1377,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "fcdraft_pitch_get_pitch_layout",
-      "community": 11,
+      "community": 0,
       "norm_label": "get_pitch_layout()"
     },
     {
@@ -1407,7 +1387,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "fcdraft_pitch_flatten",
-      "community": 11,
+      "community": 0,
       "norm_label": "_flatten()"
     },
     {
@@ -1417,7 +1397,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "fcdraft_pitch_render_pitch_html",
-      "community": 11,
+      "community": 0,
       "norm_label": "render_pitch_html()"
     },
     {
@@ -1427,7 +1407,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "fcdraft_pitch_render_bench_html",
-      "community": 11,
+      "community": 0,
       "norm_label": "render_bench_html()"
     },
     {
@@ -1437,7 +1417,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "fcdraft_pitch_display_pitch_component",
-      "community": 11,
+      "community": 0,
       "norm_label": "display_pitch_component()"
     },
     {
@@ -1447,7 +1427,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_pitch_rationale_1",
-      "community": 11,
+      "community": 0,
       "norm_label": "pitch and bench visualization."
     },
     {
@@ -1457,7 +1437,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "fcdraft_pitch_rationale_110",
-      "community": 11,
+      "community": 0,
       "norm_label": "render pitch + bench using st.html."
     },
     {
@@ -1507,7 +1487,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "fcdraft_search_get_ban_counts",
-      "community": 0,
+      "community": 4,
       "norm_label": "get_ban_counts()"
     },
     {
@@ -1537,7 +1517,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "fcdraft_search_format_player_options",
-      "community": 0,
+      "community": 4,
       "norm_label": "format_player_options()"
     },
     {
@@ -1587,7 +1567,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "fcdraft_search_rationale_33",
-      "community": 0,
+      "community": 4,
       "norm_label": "how many participants banned each player: {player_id: count}."
     },
     {
@@ -1607,7 +1587,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "fcdraft_search_rationale_84",
-      "community": 0,
+      "community": 4,
       "norm_label": "selectbox labels for a search-result frame, preserving row order."
     },
     {
@@ -1617,7 +1597,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_state",
-      "community": 13,
+      "community": 0,
       "norm_label": "state.py"
     },
     {
@@ -1627,7 +1607,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "fcdraft_state_normalize_banned_ids",
-      "community": 13,
+      "community": 0,
       "norm_label": "normalize_banned_ids()"
     },
     {
@@ -1637,7 +1617,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "fcdraft_state_json_safe_player",
-      "community": 13,
+      "community": 0,
       "norm_label": "_json_safe_player()"
     },
     {
@@ -1647,7 +1627,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "fcdraft_state_slim_squads",
-      "community": 13,
+      "community": 0,
       "norm_label": "_slim_squads()"
     },
     {
@@ -1657,7 +1637,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "fcdraft_state_rehydrate_squads",
-      "community": 13,
+      "community": 0,
       "norm_label": "_rehydrate_squads()"
     },
     {
@@ -1667,7 +1647,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "fcdraft_state_slim_bans",
-      "community": 13,
+      "community": 0,
       "norm_label": "_slim_bans()"
     },
     {
@@ -1677,7 +1657,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "fcdraft_state_rehydrate_bans",
-      "community": 13,
+      "community": 0,
       "norm_label": "_rehydrate_bans()"
     },
     {
@@ -1687,7 +1667,7 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "fcdraft_state_peek_state_version",
-      "community": 4,
+      "community": 8,
       "norm_label": "peek_state_version()"
     },
     {
@@ -1707,7 +1687,7 @@
       "source_location": "L184",
       "_origin": "ast",
       "id": "fcdraft_state_load_session_state",
-      "community": 13,
+      "community": 0,
       "norm_label": "load_session_state()"
     },
     {
@@ -1717,7 +1697,7 @@
       "source_location": "L224",
       "_origin": "ast",
       "id": "fcdraft_state_refresh_shared_state",
-      "community": 13,
+      "community": 0,
       "norm_label": "refresh_shared_state()"
     },
     {
@@ -1727,7 +1707,7 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "fcdraft_state_init_session_state",
-      "community": 9,
+      "community": 0,
       "norm_label": "init_session_state()"
     },
     {
@@ -1737,7 +1717,7 @@
       "source_location": "L267",
       "_origin": "ast",
       "id": "fcdraft_state_reset_session_state",
-      "community": 11,
+      "community": 0,
       "norm_label": "reset_session_state()"
     },
     {
@@ -1747,7 +1727,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_1",
-      "community": 13,
+      "community": 0,
       "norm_label": "draft session persistence and session-state initialization.  on disk, drafted"
     },
     {
@@ -1757,7 +1737,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_50",
-      "community": 13,
+      "community": 0,
       "norm_label": "session state always holds a set of banned player ids."
     },
     {
@@ -1767,7 +1747,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_55",
-      "community": 13,
+      "community": 0,
       "norm_label": "strip derived, non-json-serializable columns (e.g. the pos_set frozenset)."
     },
     {
@@ -1777,7 +1757,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_66",
-      "community": 13,
+      "community": 0,
       "norm_label": "replace player dicts with id references where the id exists in the database."
     },
     {
@@ -1787,7 +1767,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_80",
-      "community": 13,
+      "community": 0,
       "norm_label": "resolve id references back into full player dicts."
     },
     {
@@ -1797,7 +1777,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_96",
-      "community": 13,
+      "community": 0,
       "norm_label": "replace ban player dicts with id references where the id exists in the database."
     },
     {
@@ -1807,7 +1787,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_110",
-      "community": 13,
+      "community": 0,
       "norm_label": "resolve ban id references back into full player dicts (legacy full dicts pass th"
     },
     {
@@ -1817,7 +1797,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_126",
-      "community": 4,
+      "community": 8,
       "norm_label": "the state_version currently on disk, without touching session state.      on a"
     },
     {
@@ -1837,7 +1817,7 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_185",
-      "community": 13,
+      "community": 0,
       "norm_label": "load saved draft state from disk if it exists. returns true on success."
     },
     {
@@ -1847,7 +1827,7 @@
       "source_location": "L225",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_225",
-      "community": 13,
+      "community": 0,
       "norm_label": "re-read the multi-user keys from disk so concurrent browser sessions converge."
     },
     {
@@ -1857,7 +1837,7 @@
       "source_location": "L257",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_257",
-      "community": 9,
+      "community": 0,
       "norm_label": "restore a saved draft on first run, then fill in any missing defaults."
     },
     {
@@ -1867,7 +1847,7 @@
       "source_location": "L268",
       "_origin": "ast",
       "id": "fcdraft_state_rationale_268",
-      "community": 11,
+      "community": 0,
       "norm_label": "wipe the in-memory session and the on-disk state file."
     },
     {
@@ -1877,7 +1857,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_styles",
-      "community": 9,
+      "community": 0,
       "norm_label": "styles.py"
     },
     {
@@ -1887,7 +1867,7 @@
       "source_location": "L276",
       "_origin": "ast",
       "id": "fcdraft_styles_inject_css",
-      "community": 9,
+      "community": 0,
       "norm_label": "inject_css()"
     },
     {
@@ -1897,7 +1877,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "fcdraft_styles_rationale_1",
-      "community": 9,
+      "community": 0,
       "norm_label": "page-wide css, injected once per rerun."
     },
     {
@@ -2227,7 +2207,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_auth",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_auth.py"
     },
     {
@@ -2237,7 +2217,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "tests_test_auth_test_hash_and_verify_round_trip",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_hash_and_verify_round_trip()"
     },
     {
@@ -2247,7 +2227,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "tests_test_auth_test_wrong_password_rejected",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_wrong_password_rejected()"
     },
     {
@@ -2257,7 +2237,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "tests_test_auth_test_same_password_gets_different_salts_and_hashes",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_same_password_gets_different_salts_and_hashes()"
     },
     {
@@ -2267,7 +2247,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_test_auth_test_explicit_salt_is_deterministic",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_explicit_salt_is_deterministic()"
     },
     {
@@ -2277,7 +2257,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "tests_test_auth_test_malformed_salt_hex_returns_false",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_malformed_salt_hex_returns_false()"
     },
     {
@@ -2287,7 +2267,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tests_test_auth_test_generate_password_shape_and_uniqueness",
-      "community": 8,
+      "community": 13,
       "norm_label": "test_generate_password_shape_and_uniqueness()"
     },
     {
@@ -2297,7 +2277,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "tests_test_auth_test_generated_password_verifies",
-      "community": 8,
+      "community": 16,
       "norm_label": "test_generated_password_verifies()"
     },
     {
@@ -2307,7 +2287,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "tests_test_auth_test_credentials_store_only_salted_hashes",
-      "community": 8,
+      "community": 16,
       "norm_label": "test_credentials_store_only_salted_hashes()"
     },
     {
@@ -2317,7 +2297,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_auth_rationale_1",
-      "community": 8,
+      "community": 13,
       "norm_label": "unit tests for participant password hashing and credential checks."
     },
     {
@@ -2437,7 +2417,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_data_and_search",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_data_and_search.py"
     },
     {
@@ -2447,7 +2427,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_load_data",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_load_data()"
     },
     {
@@ -2457,7 +2437,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_search_players_by_name",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_search_players_by_name()"
     },
     {
@@ -2467,7 +2447,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_search_players_strict_position",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_search_players_strict_position()"
     },
     {
@@ -2477,47 +2457,37 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_search_players_flexible_position",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_search_players_flexible_position()"
-    },
-    {
-      "label": "test_search_uses_normalized_club_position()",
-      "file_type": "code",
-      "source_file": "tests/test_data_and_search.py",
-      "source_location": "L53",
-      "_origin": "ast",
-      "id": "tests_test_data_and_search_test_search_uses_normalized_club_position",
-      "community": 0,
-      "norm_label": "test_search_uses_normalized_club_position()"
     },
     {
       "label": "test_search_keeps_banned_players_flagged()",
       "file_type": "code",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L66",
+      "source_location": "L52",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_search_keeps_banned_players_flagged",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_search_keeps_banned_players_flagged()"
     },
     {
       "label": "test_search_keeps_drafted_players_flagged_with_picker()",
       "file_type": "code",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L82",
+      "source_location": "L68",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_search_keeps_drafted_players_flagged_with_picker",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_search_keeps_drafted_players_flagged_with_picker()"
     },
     {
       "label": "test_ban_count_in_options()",
       "file_type": "code",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L97",
+      "source_location": "L83",
       "_origin": "ast",
       "id": "tests_test_data_and_search_test_ban_count_in_options",
-      "community": 0,
+      "community": 4,
       "norm_label": "test_ban_count_in_options()"
     },
     {
@@ -2527,7 +2497,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "tests_test_data_and_search_rationale_6",
-      "community": 0,
+      "community": 4,
       "norm_label": "verify that load_data loads a valid dataframe with player rows and expected colu"
     },
     {
@@ -2537,7 +2507,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "tests_test_data_and_search_rationale_23",
-      "community": 0,
+      "community": 4,
       "norm_label": "verify that search_players filters rows based on query text matches."
     },
     {
@@ -2547,7 +2517,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "tests_test_data_and_search_rationale_30",
-      "community": 0,
+      "community": 4,
       "norm_label": "verify strict position filtering (e.g. only matching exact position list entries"
     },
     {
@@ -2557,47 +2527,37 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "tests_test_data_and_search_rationale_40",
-      "community": 0,
+      "community": 4,
       "norm_label": "verify flexible position filtering (matching adjacent slots like lb for lwb)."
-    },
-    {
-      "label": "Current on-field club role overrides broader listed positions.",
-      "file_type": "rationale",
-      "source_file": "tests/test_data_and_search.py",
-      "source_location": "L54",
-      "_origin": "ast",
-      "id": "tests_test_data_and_search_rationale_54",
-      "community": 0,
-      "norm_label": "current on-field club role overrides broader listed positions."
     },
     {
       "label": "Banned players stay in search results, flagged and labeled.",
       "file_type": "rationale",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L67",
+      "source_location": "L53",
       "_origin": "ast",
-      "id": "tests_test_data_and_search_rationale_67",
-      "community": 0,
+      "id": "tests_test_data_and_search_rationale_53",
+      "community": 4,
       "norm_label": "banned players stay in search results, flagged and labeled."
     },
     {
       "label": "Drafted players stay in search results, labeled with who picked them.",
       "file_type": "rationale",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L83",
+      "source_location": "L69",
       "_origin": "ast",
-      "id": "tests_test_data_and_search_rationale_83",
-      "community": 0,
+      "id": "tests_test_data_and_search_rationale_69",
+      "community": 4,
       "norm_label": "drafted players stay in search results, labeled with who picked them."
     },
     {
       "label": "A player banned by multiple participants shows a xN count in the dropdown label.",
       "file_type": "rationale",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L98",
+      "source_location": "L84",
       "_origin": "ast",
-      "id": "tests_test_data_and_search_rationale_98",
-      "community": 0,
+      "id": "tests_test_data_and_search_rationale_84",
+      "community": 4,
       "norm_label": "a player banned by multiple participants shows a xn count in the dropdown label."
     },
     {
@@ -3027,7 +2987,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "tests_test_persistence_test_load_corrupt_state",
-      "community": 8,
+      "community": 19,
       "norm_label": "test_load_corrupt_state()"
     },
     {
@@ -3067,7 +3027,7 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "tests_test_persistence_test_auth_credentials_round_trip_without_plaintext",
-      "community": 8,
+      "community": 16,
       "norm_label": "test_auth_credentials_round_trip_without_plaintext()"
     },
     {
@@ -3087,7 +3047,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "tests_test_persistence_test_refresh_shared_state_picks_up_other_sessions",
-      "community": 13,
+      "community": 8,
       "norm_label": "test_refresh_shared_state_picks_up_other_sessions()"
     },
     {
@@ -3127,7 +3087,7 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "tests_test_persistence_test_auth_tokens_round_trip_and_refresh",
-      "community": 13,
+      "community": 8,
       "norm_label": "test_auth_tokens_round_trip_and_refresh()"
     },
     {
@@ -3177,7 +3137,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "tests_test_persistence_rationale_69",
-      "community": 8,
+      "community": 19,
       "norm_label": "a corrupt state file is set aside as .corrupt and load returns false."
     },
     {
@@ -3217,7 +3177,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "tests_test_persistence_rationale_153",
-      "community": 8,
+      "community": 16,
       "norm_label": "credentials persist as salted hashes; plaintext passwords never reach disk."
     },
     {
@@ -3237,7 +3197,7 @@
       "source_location": "L184",
       "_origin": "ast",
       "id": "tests_test_persistence_rationale_184",
-      "community": 13,
+      "community": 8,
       "norm_label": "refresh_shared_state re-reads shared keys from disk without touching login state"
     },
     {
@@ -3277,7 +3237,7 @@
       "source_location": "L271",
       "_origin": "ast",
       "id": "tests_test_persistence_rationale_271",
-      "community": 13,
+      "community": 8,
       "norm_label": "the token map persists and is picked up by refresh_shared_state."
     },
     {
@@ -5799,17 +5759,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L26",
-      "weight": 1.0,
-      "source": "fcdraft_data",
-      "target": "fcdraft_data_draft_positions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "fcdraft/data.py",
-      "source_location": "L84",
+      "source_location": "L64",
       "weight": 1.0,
       "source": "fcdraft_data",
       "target": "fcdraft_data_get_player_by_id",
@@ -5819,7 +5769,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L70",
+      "source_location": "L50",
       "weight": 1.0,
       "source": "fcdraft_data",
       "target": "fcdraft_data_load_data",
@@ -5829,7 +5779,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L35",
+      "source_location": "L19",
       "weight": 1.0,
       "source": "fcdraft_data",
       "target": "fcdraft_data_load_data_uncached",
@@ -5839,7 +5789,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L79",
+      "source_location": "L59",
       "weight": 1.0,
       "source": "fcdraft_data",
       "target": "fcdraft_data_players_by_id_uncached",
@@ -5904,28 +5854,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L53",
-      "weight": 1.0,
-      "source": "fcdraft_data_load_data_uncached",
-      "target": "fcdraft_data_draft_positions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "fcdraft/data.py",
-      "source_location": "L27",
-      "weight": 1.0,
-      "source": "fcdraft_data_rationale_27",
-      "target": "fcdraft_data_draft_positions",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "fcdraft/data.py",
-      "source_location": "L72",
+      "source_location": "L52",
       "weight": 1.0,
       "source": "fcdraft_data_load_data",
       "target": "fcdraft_data_load_data_uncached",
@@ -5936,7 +5865,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L80",
+      "source_location": "L60",
       "weight": 1.0,
       "source": "fcdraft_data_players_by_id_uncached",
       "target": "fcdraft_data_load_data_uncached",
@@ -6013,7 +5942,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L87",
+      "source_location": "L67",
       "weight": 1.0,
       "source": "fcdraft_data_get_player_by_id",
       "target": "fcdraft_data_players_by_id_uncached",
@@ -6023,9 +5952,9 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "fcdraft/data.py",
-      "source_location": "L85",
+      "source_location": "L65",
       "weight": 1.0,
-      "source": "fcdraft_data_rationale_85",
+      "source": "fcdraft_data_rationale_65",
       "target": "fcdraft_data_get_player_by_id",
       "confidence_score": 1.0
     },
@@ -9396,7 +9325,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L105",
+      "source_location": "L91",
       "weight": 1.0,
       "source": "tests_test_data_and_search",
       "target": "fcdraft_search_get_ban_counts",
@@ -9407,7 +9336,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L106",
+      "source_location": "L92",
       "weight": 1.0,
       "source": "tests_test_data_and_search_test_ban_count_in_options",
       "target": "fcdraft_search_get_ban_counts",
@@ -9449,7 +9378,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L77",
+      "source_location": "L63",
       "weight": 1.0,
       "source": "tests_test_data_and_search",
       "target": "fcdraft_search_format_player_options",
@@ -9460,7 +9389,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L109",
+      "source_location": "L95",
       "weight": 1.0,
       "source": "tests_test_data_and_search_test_ban_count_in_options",
       "target": "fcdraft_search_format_player_options",
@@ -9471,7 +9400,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L78",
+      "source_location": "L64",
       "weight": 1.0,
       "source": "tests_test_data_and_search_test_search_keeps_banned_players_flagged",
       "target": "fcdraft_search_format_player_options",
@@ -9482,7 +9411,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L94",
+      "source_location": "L80",
       "weight": 1.0,
       "source": "tests_test_data_and_search_test_search_keeps_drafted_players_flagged_with_picker",
       "target": "fcdraft_search_format_player_options",
@@ -10473,7 +10402,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L97",
+      "source_location": "L83",
       "weight": 1.0,
       "source": "tests_test_data_and_search",
       "target": "tests_test_data_and_search_test_ban_count_in_options",
@@ -10493,7 +10422,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L66",
+      "source_location": "L52",
       "weight": 1.0,
       "source": "tests_test_data_and_search",
       "target": "tests_test_data_and_search_test_search_keeps_banned_players_flagged",
@@ -10503,7 +10432,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L82",
+      "source_location": "L68",
       "weight": 1.0,
       "source": "tests_test_data_and_search",
       "target": "tests_test_data_and_search_test_search_keeps_drafted_players_flagged_with_picker",
@@ -10537,16 +10466,6 @@
       "weight": 1.0,
       "source": "tests_test_data_and_search",
       "target": "tests_test_data_and_search_test_search_players_strict_position",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/test_data_and_search.py",
-      "source_location": "L53",
-      "weight": 1.0,
-      "source": "tests_test_data_and_search",
-      "target": "tests_test_data_and_search_test_search_uses_normalized_club_position",
       "confidence_score": 1.0
     },
     {
@@ -10593,19 +10512,9 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L54",
+      "source_location": "L53",
       "weight": 1.0,
-      "source": "tests_test_data_and_search_rationale_54",
-      "target": "tests_test_data_and_search_test_search_uses_normalized_club_position",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/test_data_and_search.py",
-      "source_location": "L67",
-      "weight": 1.0,
-      "source": "tests_test_data_and_search_rationale_67",
+      "source": "tests_test_data_and_search_rationale_53",
       "target": "tests_test_data_and_search_test_search_keeps_banned_players_flagged",
       "confidence_score": 1.0
     },
@@ -10613,9 +10522,9 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L83",
+      "source_location": "L69",
       "weight": 1.0,
-      "source": "tests_test_data_and_search_rationale_83",
+      "source": "tests_test_data_and_search_rationale_69",
       "target": "tests_test_data_and_search_test_search_keeps_drafted_players_flagged_with_picker",
       "confidence_score": 1.0
     },
@@ -10623,9 +10532,9 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "tests/test_data_and_search.py",
-      "source_location": "L98",
+      "source_location": "L84",
       "weight": 1.0,
-      "source": "tests_test_data_and_search_rationale_98",
+      "source": "tests_test_data_and_search_rationale_84",
       "target": "tests_test_data_and_search_test_ban_count_in_options",
       "confidence_score": 1.0
     },

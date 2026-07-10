@@ -84,7 +84,7 @@ def format_player_options(df):
     """Selectbox labels for a search-result frame, preserving row order."""
     has_banned = "is_banned" in df.columns
     has_picked = "picked_by" in df.columns
-    cols = ["short_name", "overall", "player_positions", "club_name"]
+    cols = ["short_name", "overall", "player_positions", "club_position", "club_name"]
     if has_banned:
         cols += ["is_banned", "player_id"]
         ban_counts = get_ban_counts() if df["is_banned"].any() else {}
@@ -100,6 +100,6 @@ def format_player_options(df):
         return f" 🚫 BANNED ×{count}" if count > 1 else " 🚫 BANNED"
 
     return [
-        f"{r['short_name']} ({r['overall']} OVR | {r['player_positions']} | {r['club_name']})" + _suffix(r)
+        f"{r['short_name']} ({r['overall']} OVR | Club: {r['club_position'] or r['player_positions']} | {r['club_name']})" + _suffix(r)
         for r in df[cols].to_dict("records")
     ]
