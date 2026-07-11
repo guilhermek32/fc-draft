@@ -57,6 +57,12 @@ def render_login_gateway(key_prefix=""):
             if check_credential(ADMIN_NAME, password):
                 st.session_state.is_admin = True
                 _finish_login(is_admin=True)
+            elif ADMIN_NAME not in st.session_state.auth_credentials:
+                # Legacy state file created before the admin superuser existed:
+                # the first admin login claims the password.
+                set_credential(ADMIN_NAME, password)
+                st.session_state.is_admin = True
+                _finish_login(is_admin=True)
             else:
                 st.error("Incorrect password.")
         elif name not in st.session_state.auth_credentials:
