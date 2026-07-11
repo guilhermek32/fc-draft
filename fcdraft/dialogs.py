@@ -4,7 +4,7 @@ import streamlit as st
 
 from fcdraft.cards import render_preview_card
 from fcdraft.draft import commit_pick
-from fcdraft.formations import get_base_position
+from fcdraft.formations import get_base_position, position_label_pt, slot_label_pt
 from fcdraft.search import format_player_options, get_ban_counts, search_players
 
 
@@ -17,10 +17,10 @@ def draft_player_dialog(slot, picker):
             st.rerun()
         return
 
-    st.markdown(f"### Draft Player for: **{slot}**")
+    st.markdown(f"### Draft Player for: **{slot_label_pt(slot)}**")
 
     base_pos = get_base_position(slot)
-    st.write(f"Position Filter: **{base_pos}**")
+    st.write(f"Position Filter: **{position_label_pt(base_pos)}**")
 
     search_query = st.text_input("🔍 Search by Name / Club / Nation", value="", key="dialog_search_input")
     df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode="Flexible")
@@ -38,7 +38,7 @@ def draft_player_dialog(slot, picker):
     if p_dict:
         st.write(" ")
         st.html(render_preview_card(
-            p_dict, base_pos, width=120, height=180, padding=10,
+            p_dict, position_label_pt(base_pos), width=120, height=180, padding=10,
             rating_size=11, pos_size=12, face_size=70, name_size=12, club_size=9,
             border_radius="8px", banned=bool(p_dict.get("is_banned") or p_dict.get("picked_by")),
         ))

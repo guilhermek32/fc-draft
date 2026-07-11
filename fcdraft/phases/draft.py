@@ -6,7 +6,7 @@ import streamlit as st
 
 from fcdraft.config import ADMIN_LABEL, PICK_TIMER_SECONDS
 from fcdraft.draft import apply_pick_autopick, auto_draft_remaining, commit_pick, reset_pick_deadline
-from fcdraft.formations import build_slot_list, get_base_position
+from fcdraft.formations import build_slot_list, get_base_position, position_label_pt, slot_label_pt
 from fcdraft.gateway import (
     get_authed_participant,
     live_sync_poller,
@@ -54,7 +54,7 @@ def _render_timeout_notice():
     if last.get("player_name"):
         st.warning(
             f"⏱️ **{last['participant']}** ran out of time on pick {last['at_pick']} — "
-            f"**{last['player_name']}** was auto-picked for **{last['slot']}**."
+            f"**{last['player_name']}** was auto-picked for **{slot_label_pt(last['slot'])}**."
         )
     else:
         # Legacy relegation notice persisted by an older version.
@@ -191,10 +191,10 @@ def _render_draft_room(curr_idx, seq, picker):
             save_session_state()
             st.rerun()
 
-        selected_slot = st.selectbox("Select Empty Slot", empty_slots, key=f"sel_slot_{curr_idx}")
+        selected_slot = st.selectbox("Escolha a Posição Livre", empty_slots, format_func=slot_label_pt, key=f"sel_slot_{curr_idx}")
         base_pos = get_base_position(selected_slot)
 
-        st.write(f"2. Search and select a player. Pool automatically filtered to position: **{base_pos}**")
+        st.write(f"2. Search and select a player. Pool automatically filtered to position: **{position_label_pt(base_pos)}**")
         search_query = st.text_input("🔍 Search by Player Name / Club / Nation", value="", placeholder="Type here...", key=f"query_{curr_idx}")
         df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode="Flexible")
         options = format_player_options(df_pool)
@@ -216,7 +216,7 @@ def _render_draft_room(curr_idx, seq, picker):
         elif p_dict and p_dict.get("picked_by"):
             st.error(f"🔒 {p_dict['short_name']} was already drafted by **{p_dict['picked_by']}**.")
         elif p_dict:
-            if st.button(f"✅ Draft {p_dict['short_name']} for {selected_slot}", type="primary", use_container_width=True):
+            if st.button(f"✅ Draft {p_dict['short_name']} for {slot_label_pt(selected_slot)}", type="primary", use_container_width=True):
                 if commit_pick(picker, selected_slot, p_dict):
                     st.rerun()
 
@@ -224,7 +224,7 @@ def _render_draft_room(curr_idx, seq, picker):
         if p_dict:
             st.markdown("### 📋 Player Profile")
             st.markdown(render_preview_card(
-                p_dict, base_pos, width=140, height=210, padding=12,
+                p_dict, position_label_pt(base_pos), width=140, height=210, padding=12,
                 rating_size=13, pos_size=14, face_size=90, name_size=14, club_size=10,
                 rating_padding="2px 6px", margin_bottom="15px",
                 banned=bool(p_dict.get("is_banned") or p_dict.get("picked_by")),
@@ -255,9 +255,9 @@ def _render_board():
             for slot in all_slots:
                 if slot in squad:
                     player = squad[slot]
-                    st.write(f"- **{slot}:** {player['short_name']} ({player['overall']} OVR)")
+                    st.write(f"- **{slot_label_pt(slot)}:** {player['short_name']} ({player['overall']} OVR)")
                 else:
-                    st.write(f"- *{slot}:* (Empty)")
+                    st.write(f"- *{slot_label_pt(slot)}:* (Empty)")
 
 
 def _render_pitch_tab(picker):

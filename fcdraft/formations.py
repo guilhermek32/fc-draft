@@ -24,6 +24,27 @@ def get_base_position(slot_name):
     return slot_name.split()[0].upper()
 
 
+# Portuguese display labels for base positions. Display-only: slot keys stay
+# in English everywhere (persisted state, position matching, URLs, CSV export).
+POSITION_LABELS_PT = {
+    "GK": "GOL", "CB": "ZAG", "LB": "LE", "RB": "LD",
+    "LWB": "ALE", "RWB": "ALD", "CDM": "VOL", "CM": "MC",
+    "CAM": "MEI", "LM": "ME", "RM": "MD", "LW": "PE", "RW": "PD",
+    "ST": "ATA", "CF": "CA", "LF": "PE", "RF": "PD", "SUB": "RES",
+}
+
+
+def position_label_pt(base_pos):
+    """Portuguese label for a base position code (falls back to the code)."""
+    return POSITION_LABELS_PT.get(str(base_pos).upper(), base_pos)
+
+
+def slot_label_pt(slot):
+    """Portuguese label for a slot name, keeping the number ("CB 1" -> "ZAG 1")."""
+    base = get_base_position(slot)
+    return position_label_pt(base) + slot[len(base):]
+
+
 def build_slot_list(formation, bench_slots):
     """Starting-XI slot names for a formation plus numbered SUB slots."""
     return get_formation_slots(formation) + [f"SUB {x}" for x in range(1, bench_slots + 1)]

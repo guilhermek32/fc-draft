@@ -5,6 +5,7 @@ import html as html_lib
 import streamlit as st
 
 from fcdraft.config import NOTFOUND_IMG_URL, OVR_TIER_GOLD, OVR_TIER_SILVER
+from fcdraft.formations import slot_label_pt
 from fcdraft.images import get_player_image_src
 
 
@@ -45,7 +46,7 @@ def render_player_card(player, pos_label):
 def render_empty_card(slot, interactive=False):
     card_html = f"""
     <div class="player-card empty-card">
-        <div class="empty-pos">{slot}</div>
+        <div class="empty-pos">{slot_label_pt(slot)}</div>
         <div class="empty-plus">+</div>
     </div>
     """

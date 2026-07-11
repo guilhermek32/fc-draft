@@ -3,7 +3,7 @@
 import streamlit as st
 
 from fcdraft.cards import render_empty_card, render_player_card
-from fcdraft.formations import get_formation_slots
+from fcdraft.formations import get_formation_slots, position_label_pt
 
 _ROW_POSITIONS = {
     "defense": ("CB", "LB", "RB", "LWB", "RWB"),
@@ -72,7 +72,7 @@ def render_pitch_html(formation, drafted_players, interactive=False):
         for item in rows[row_name]:
             slot, player = item["slot"], item["player"]
             if player:
-                parts.append(render_player_card(player, slot.split()[0]))
+                parts.append(render_player_card(player, position_label_pt(slot.split()[0])))
             else:
                 parts.append(render_empty_card(slot, interactive))
         parts.append("</div>")
@@ -87,7 +87,7 @@ def render_bench_html(bench_slots, drafted_players, interactive=False):
 
     parts = ["""
     <div style="text-align: center; margin-top: 30px;">
-        <h4 class="gold-text" style="margin-bottom: 15px;">SUBSTITUTES / BENCH</h4>
+        <h4 class="gold-text" style="margin-bottom: 15px;">RESERVAS / BANCO</h4>
         <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
     """]
 
@@ -95,7 +95,7 @@ def render_bench_html(bench_slots, drafted_players, interactive=False):
         slot = f"SUB {i}"
         player = drafted_players.get(slot, None)
         if player:
-            parts.append(render_player_card(player, "SUB"))
+            parts.append(render_player_card(player, "RES"))
         else:
             parts.append(render_empty_card(slot, interactive))
 
