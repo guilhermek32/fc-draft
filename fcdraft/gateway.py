@@ -6,6 +6,7 @@ by polling the persisted state_version counter and forcing a full-app rerun
 only when another session has saved.
 """
 
+import json
 from datetime import datetime
 
 import streamlit as st
@@ -44,32 +45,47 @@ def live_sync_poller():
         st.rerun(scope="app")
 
 
+# Runs in the top window (not the component iframe): the component iframe is
+# replaced on every poll, which would kill any interval it owned.
+_WATCHDOG_JS = """
+window.__syncWatchdog = setInterval(function() {
+    var stale = Date.now() - (window.__lastSyncBeat || Date.now()) > %(freeze_ms)d;
+    var banner = document.getElementById('sync-freeze-banner');
+    if (stale && !banner) {
+        banner = document.createElement('div');
+        banner.id = 'sync-freeze-banner';
+        banner.style.cssText =
+            'position:fixed;top:0;left:0;right:0;z-index:999999;' +
+            'background:#b91c1c;color:#fff;text-align:center;' +
+            'padding:10px;font-family:sans-serif;font-size:15px;';
+        banner.textContent =
+            '⚠️ The screen stopped updating — reload the page to see the latest picks.';
+        document.body.appendChild(banner);
+    } else if (!stale && banner) {
+        banner.remove();
+    }
+}, 3000);
+""" % {"freeze_ms": _FREEZE_AFTER_MS}
+
+
 def _render_sync_status():
-    st.caption(f"🔄 Live sync · last updated {datetime.now():%H:%M:%S}")
+    now = datetime.now()
+    st.caption(f"🔄 Live sync · last updated {now:%H:%M:%S}")
+    # The beat timestamp is baked into the markup: identical HTML would be
+    # memoized by Streamlit and the script would only ever run once, so the
+    # heartbeat would go stale on a healthy page.
     components.html(
         f"""
         <script>
+        // beat {now.timestamp()}
         (function() {{
             const w = window.parent;
             w.__lastSyncBeat = Date.now();
-            if (w.__syncWatchdog) return;
-            w.__syncWatchdog = setInterval(() => {{
-                const stale = Date.now() - w.__lastSyncBeat > {_FREEZE_AFTER_MS};
-                let banner = w.document.getElementById('sync-freeze-banner');
-                if (stale && !banner) {{
-                    banner = w.document.createElement('div');
-                    banner.id = 'sync-freeze-banner';
-                    banner.style.cssText =
-                        'position:fixed;top:0;left:0;right:0;z-index:999999;' +
-                        'background:#b91c1c;color:#fff;text-align:center;' +
-                        'padding:10px;font-family:sans-serif;font-size:15px;';
-                    banner.textContent =
-                        '⚠️ The screen stopped updating — reload the page to see the latest picks.';
-                    w.document.body.appendChild(banner);
-                }} else if (!stale && banner) {{
-                    banner.remove();
-                }}
-            }}, 3000);
+            if (!w.__syncWatchdog) {{
+                const s = w.document.createElement('script');
+                s.textContent = {json.dumps(_WATCHDOG_JS)};
+                w.document.head.appendChild(s);
+            }}
         }})();
         </script>
         """,
