@@ -2,7 +2,10 @@
 
 CSV_FILE = "FC26_20250921.csv"
 STATE_FILE = "draft_state.json"
-IMAGE_CACHE_DIR = "image_cache"
+# Under ./static so Streamlit's static file serving (enableStaticServing) can
+# expose the faces at ./app/static/image_cache/ instead of inline base64.
+IMAGE_CACHE_DIR = "static/image_cache"
+LEGACY_IMAGE_CACHE_DIR = "image_cache"
 
 NOTFOUND_IMG_URL = "https://cdn.sofifa.net/players/notfound_0_120.png"
 TRANSPARENT_PIXEL_URI = (

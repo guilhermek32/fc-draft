@@ -33,8 +33,11 @@ _SESSION_DEFAULTS = {
     "authed_participant": None,
     # Whether this browser session is the admin superuser; never persisted.
     "is_admin": False,
-    # Monotonic save counter used by the live-sync poller to detect remote writes.
+    # Monotonic save counter used to order concurrent saves.
     "state_version": 0,
+    # (mtime_ns, size) of the state file as last loaded by THIS session; the
+    # poller and per-render refresh skip all work while it is unchanged.
+    "state_signature": None,
     "banned_player_ids": set(),
     "drafted_players": {},
     "draft_sequence": [],
@@ -126,6 +129,20 @@ def _rehydrate_bans(bans):
     return full
 
 
+def state_file_signature(path=None):
+    """Cheap change marker for the state file: (mtime_ns, size), or None.
+
+    One os.stat call — used by the live-sync poller and the per-render refresh
+    so unchanged state never costs a JSON parse.
+    """
+    path = path or STATE_FILE
+    try:
+        info = os.stat(path)
+    except OSError:
+        return None
+    return (info.st_mtime_ns, info.st_size)
+
+
 def peek_state_version(path=None):
     """The state_version currently on disk, without touching session state.
 
@@ -178,6 +195,7 @@ def save_session_state(path=None):
             json.dump(state_to_save, f)
         os.replace(tmp_path, path)
         st.session_state.state_version = new_version
+        st.session_state.state_signature = state_file_signature(path)
     except (OSError, TypeError, ValueError) as e:
         try:
             os.remove(tmp_path)
@@ -191,6 +209,9 @@ def load_session_state(path=None):
     path = path or STATE_FILE
     if not os.path.exists(path):
         return False
+    # Signature taken before the read: if another session writes in between,
+    # the stale signature only costs one extra refresh, never a missed one.
+    signature = state_file_signature(path)
     try:
         with open(path, "r") as f:
             state = json.load(f)
@@ -221,6 +242,7 @@ def load_session_state(path=None):
         st.session_state.pick_deadline = state.get("pick_deadline")
         st.session_state.last_timeout = state.get("last_timeout")
         st.session_state.state_version = state.get("state_version", 0)
+        st.session_state.state_signature = signature
         return True
     except (AttributeError, TypeError) as e:
         st.warning(f"Saved draft state has an unexpected shape and was ignored: {e}")
@@ -235,7 +257,12 @@ def refresh_shared_state(path=None):
     another device. Per-session keys (e.g. authed_participant) are untouched.
     """
     path = path or STATE_FILE
-    if not os.path.exists(path):
+    signature = state_file_signature(path)
+    if signature is None:
+        return
+    # Nothing changed on disk since this session last loaded it: skip the
+    # JSON parse and rehydration entirely (this runs on every rerun).
+    if signature == st.session_state.get("state_signature"):
         return
     try:
         with open(path, "r") as f:
@@ -262,6 +289,7 @@ def refresh_shared_state(path=None):
     st.session_state.pick_deadline = state.get("pick_deadline")
     st.session_state.last_timeout = state.get("last_timeout")
     st.session_state.state_version = state.get("state_version", 0)
+    st.session_state.state_signature = signature
 
 
 def remove_participant(name):

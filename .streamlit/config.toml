@@ -9,3 +9,17 @@ font = "sans serif"
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+# Serve player-face PNGs from ./static as browser-cacheable URLs instead of
+# inline base64 (keeps pitch reruns small with many concurrent sessions).
+enableStaticServing = true
+# No dev file-watching in production; restart the server to pick up code changes.
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+# Streamlit default runs a full gc.collect(2) after EVERY script/fragment run.
+# With the 1s pick-timer fragment in each session that alone saturated a core
+# (profiled: ~75% of server CPU). Python's normal automatic GC still runs.
+postScriptGC = false

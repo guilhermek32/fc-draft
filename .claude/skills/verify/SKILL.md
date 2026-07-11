@@ -12,11 +12,18 @@ Streamlit app; entry point `app.py`, code in `fcdraft/`. Python env: repo `.venv
 `STATE_FILE` and `CSV_FILE` in `fcdraft/config.py` are **CWD-relative**. Run from a scratch dir with symlinks so state writes land there:
 
 ```bash
-mkdir -p /tmp/fc-verify && cd /tmp/fc-verify
+mkdir -p /tmp/fc-verify/.streamlit && cd /tmp/fc-verify
 ln -sf <repo>/FC26_20250921.csv . && ln -sf <repo>/image_cache .
-PYTHONPATH=<repo> <repo>/.venv/bin/streamlit run <repo>/app.py \
+cp <repo>/app.py . && cp <repo>/.streamlit/config.toml .streamlit/
+PYTHONPATH=<repo> <repo>/.venv/bin/streamlit run app.py \
   --server.port 8631 --server.headless true
 ```
+
+Run the **local copy of app.py**, not the repo path: static file serving
+(`enableStaticServing`, player faces at `./app/static/image_cache/...`) roots
+at the *main script's* directory. Faces auto-migrate from the `image_cache`
+symlink into `./static/image_cache/` on first render. The config.toml copy
+matters too (static serving + `runner.postScriptGC=false`).
 
 Fresh scenario = delete the scratch `draft_state.json` and restart (sessions cache state in memory).
 

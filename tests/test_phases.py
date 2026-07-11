@@ -18,7 +18,7 @@ def _ui_mocks(monkeypatch, mock_streamlit_state, tmp_path):
         lambda label, options=(), *a, **k: options[0] if len(options) else None,
     )
     # No network / disk writes from smoke tests
-    monkeypatch.setattr("fcdraft.cards.get_player_image_base64_cached", lambda pid, url: "data:image/png;base64,x")
+    monkeypatch.setattr("fcdraft.cards.get_player_image_src", lambda pid, url: "data:image/png;base64,x")
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(tmp_path / "draft_state.json"))
 
 

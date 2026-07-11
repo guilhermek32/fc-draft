@@ -2,8 +2,8 @@
 
 import streamlit as st
 
-from fcdraft.config import DEFAULT_MIN_OVR, FLEXIBLE_POSITIONS
-from fcdraft.data import load_data
+from fcdraft.config import CSV_FILE, DEFAULT_MIN_OVR, FLEXIBLE_POSITIONS
+from fcdraft.data import _load_data_uncached, load_data
 
 
 def get_drafted_ids():
@@ -45,17 +45,17 @@ def allowed_positions(position_filter, filter_mode):
     return FLEXIBLE_POSITIONS.get(position_filter, [position_filter])
 
 
-def search_players(query="", position_filter=None, filter_mode="Strict"):
-    """Players matching the position and text filters.
+@st.cache_data
+def _filtered_pool(query, position_filter, filter_mode):
+    """Position/text-filtered subset of the pool, shared across all sessions.
 
-    Banned and already-drafted players are kept but flagged (``is_banned`` /
-    ``picked_by`` columns) so the UI can gray them out and label them; both
-    remain undraftable. Results are sorted by overall rating descending (the
-    database is pre-sorted).
+    Works on the lru-cached master frame (no defensive full-frame copy) and
+    caches only the small filtered result per (query, position, mode).
     """
-    df = load_data()
-    if df.empty:
-        return df.assign(is_banned=False, picked_by="")
+    try:
+        df = _load_data_uncached(CSV_FILE)
+    except Exception:
+        return load_data().head(0)
     mask = None
 
     if position_filter and position_filter != "SUB":
@@ -71,7 +71,20 @@ def search_players(query="", position_filter=None, filter_mode="Strict"):
         ovr_mask = df["overall"] >= DEFAULT_MIN_OVR
         mask = ovr_mask if mask is None else mask & ovr_mask
 
-    results = df[mask] if mask is not None else df
+    return df[mask] if mask is not None else df
+
+
+def search_players(query="", position_filter=None, filter_mode="Strict"):
+    """Players matching the position and text filters.
+
+    Banned and already-drafted players are kept but flagged (``is_banned`` /
+    ``picked_by`` columns) so the UI can gray them out and label them; both
+    remain undraftable. Results are sorted by overall rating descending (the
+    database is pre-sorted).
+    """
+    results = _filtered_pool(query, position_filter, filter_mode)
+    if results.empty:
+        return results.assign(is_banned=False, picked_by="")
     banned = set(st.session_state.banned_player_ids)
     picked_by = get_picked_by()
     return results.assign(

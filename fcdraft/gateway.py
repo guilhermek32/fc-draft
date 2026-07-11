@@ -10,13 +10,18 @@ import streamlit as st
 
 from fcdraft.auth import check_credential, issue_auth_token, revoke_auth_token, set_credential
 from fcdraft.config import ADMIN_LABEL, ADMIN_NAME, LIVE_SYNC_INTERVAL
-from fcdraft.state import peek_state_version, save_session_state
+from fcdraft.state import save_session_state, state_file_signature
 
 
 @st.fragment(run_every=LIVE_SYNC_INTERVAL)
 def live_sync_poller():
-    """Rerun the whole app when another session has written new state."""
-    if peek_state_version() != st.session_state.get("state_version", 0):
+    """Rerun the whole app when another session has written new state.
+
+    One os.stat per poll; a missing/unreadable file (signature None) never
+    triggers a rerun, so transient failures cause no rerun storms.
+    """
+    signature = state_file_signature()
+    if signature is not None and signature != st.session_state.get("state_signature"):
         st.rerun(scope="app")
 
 

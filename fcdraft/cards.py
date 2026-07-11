@@ -5,7 +5,7 @@ import html as html_lib
 import streamlit as st
 
 from fcdraft.config import NOTFOUND_IMG_URL, OVR_TIER_GOLD, OVR_TIER_SILVER
-from fcdraft.images import get_player_image_base64_cached
+from fcdraft.images import get_player_image_src
 
 
 def ovr_tier_class(ovr):
@@ -16,11 +16,11 @@ def ovr_tier_class(ovr):
     return "card-bronze"
 
 
-def player_face_data_uri(player):
+def player_face_src(player):
     face_url = player.get("player_face_url", "")
     if not isinstance(face_url, str) or not face_url.startswith("http"):
         face_url = NOTFOUND_IMG_URL
-    return get_player_image_base64_cached(player.get("player_id", "notfound"), face_url)
+    return get_player_image_src(player.get("player_id", "notfound"), face_url)
 
 
 def render_player_card(player, pos_label):
@@ -35,7 +35,7 @@ def render_player_card(player, pos_label):
             <span class="card-rating">{ovr}</span>
             <span class="card-pos">{pos_label}</span>
         </div>
-        <img class="card-face" src="{player_face_data_uri(player)}" referrerpolicy="no-referrer">
+        <img class="card-face" src="{player_face_src(player)}" referrerpolicy="no-referrer">
         <div class="card-name" title="{long_name}">{name}</div>
         <div class="card-club" title="{club}">{club}</div>
     </div>
@@ -74,7 +74,7 @@ def render_preview_card(player, pos_label, width, height, padding,
                 <span class="card-rating" style="font-size: {rating_size}px; padding: {rating_padding};">{ovr}</span>
                 <span class="card-pos" style="font-size: {pos_size}px;">{pos_label}</span>
             </div>
-            <img class="card-face" src="{player_face_data_uri(player)}" style="width: {face_size}px; height: {face_size}px;{face_style}" referrerpolicy="no-referrer">
+            <img class="card-face" src="{player_face_src(player)}" style="width: {face_size}px; height: {face_size}px;{face_style}" referrerpolicy="no-referrer">
             <div class="card-name" style="font-size: {name_size}px; margin-top: 4px;">{player['short_name']}</div>
             <div class="card-club" style="font-size: {club_size}px;">{player['club_name']}</div>
         </div>
