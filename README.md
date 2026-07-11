@@ -28,11 +28,15 @@ A premium, interactive web application built with **Streamlit** and **Pandas** t
 
 ### 4. 🎨 Rich Aesthetic Pitch & Substitutes Board
 * **FUT Card Rendering**: Renders player cards styled after Ultimate Team cards (Gold for 85+ OVR, Silver for 75-84, Bronze for <75) on a green pitch with penalty boxes and tactical lines.
-* **Cached Card Faces**: Automatically downloads player face images to local cache (`image_cache/`) and reads them as Base64 Data URIs to bypass CDN rate-limits and load pages instantly.
+* **Cached Card Faces**: Automatically downloads player face images to a local cache (`static/image_cache/`) served via Streamlit static file serving, bypassing CDN rate-limits and loading pages instantly.
 
-### 5. 💾 Session State Persistence
-* Saves all draft configurations, draft history logs, and squad selections on disk in `draft_state.json` during state-mutating actions (picking, resetting, and banning).
+### 5. 💾 Session State Persistence & Live Multi-Device Sync
+* Saves all draft configurations, draft history logs, and squad selections in a local SQLite database (`draft_state.db`, WAL mode) during state-mutating actions (picking, resetting, and banning).
+* Every write is a single ACID transaction with a database-enforced version check (compare-and-swap), so concurrent sessions — even multiple devices drafting at once — can never overwrite each other's picks.
+* Each browser session polls the state version every 2 seconds, so picks, bans, and timer events made on one device appear on all others automatically.
+* A `draft_state.json` from older versions of the app is imported into the database on first load and renamed to `.imported`.
 * Automatically reloads active states at startup, protecting your progress from browser refreshes or server restarts.
+* A 90-second pick clock with auto-pick: if the timer expires, the best available matching player is drafted automatically and exactly once.
 
 ### 📥 6. Roster Exports
 * Export rosters directly as a standardized CSV table.
