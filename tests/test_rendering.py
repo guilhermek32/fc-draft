@@ -9,10 +9,10 @@ def test_render_pitch_html_non_interactive():
     
     html = app.render_pitch_html(formation="4-3-3", drafted_players=drafted_players, interactive=False)
     
-    # Verify card content is rendered
+    # Verify card content is rendered (positions display in Portuguese)
     assert "Alisson" in html
     assert "89" in html
-    assert "GK" in html
+    assert "GOL" in html
     
     # Since it is non-interactive, there should be no anchor tags targeting draft_slot
     assert "?draft_slot=" not in html
@@ -36,9 +36,10 @@ def test_render_bench_html():
     
     html = app.render_bench_html(bench_slots=3, drafted_players=drafted_players, interactive=False)
     
-    # Verify that filled and empty slot markings exist
+    # Verify that filled and empty slot markings exist (displayed in Portuguese,
+    # while the underlying slot keys and draft_slot URLs stay in English)
     assert "Salah" in html
-    assert "SUB 2" in html
+    assert "RES 2" in html
     assert "?draft_slot=" not in html
     
     # Interactive bench slots

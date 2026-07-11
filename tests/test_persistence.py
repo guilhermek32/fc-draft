@@ -281,9 +281,29 @@ def test_auth_tokens_round_trip_and_refresh(tmp_path, monkeypatch, mock_streamli
     assert app.load_session_state()
     assert mock_streamlit_state["auth_tokens"] == {"tok1": {"participant": "Alice", "is_admin": False}}
 
+    # Simulate a session that has not seen the file yet (no stat signature):
+    # refresh must pick the tokens up from disk. A session whose signature
+    # matches the file skips the reload by design.
     mock_streamlit_state["auth_tokens"] = {}
+    mock_streamlit_state.pop("state_signature", None)
     refresh_shared_state()
     assert mock_streamlit_state["auth_tokens"] == {"tok1": {"participant": "Alice", "is_admin": False}}
+
+
+def test_refresh_skips_reload_when_file_unchanged(tmp_path, monkeypatch, mock_streamlit_state):
+    """An unchanged state file must not be re-read on every rerun."""
+    from fcdraft.state import refresh_shared_state
+
+    test_state_file = tmp_path / "draft_state.json"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    mock_streamlit_state["auth_tokens"] = {"tok1": {"participant": "Alice", "is_admin": False}}
+    app.save_session_state()
+
+    # In-memory divergence without a disk change stays as-is (the fast path).
+    mock_streamlit_state["auth_tokens"] = {}
+    refresh_shared_state()
+    assert mock_streamlit_state["auth_tokens"] == {}
 
 
 def test_state_file_is_gitignored():
