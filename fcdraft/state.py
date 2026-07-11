@@ -8,12 +8,30 @@ st.session_state the squads always hold full player dicts.
 
 import json
 import os
+import sqlite3
+import threading
+from contextlib import contextmanager
 
 import streamlit as st
 
-from fcdraft.config import DEFAULT_BENCH_SLOTS, STATE_FILE
+from fcdraft.config import DEFAULT_BENCH_SLOTS, LEGACY_STATE_JSON, STATE_FILE
 from fcdraft.data import get_player_by_id
 from fcdraft.formations import build_snake_sequence
+
+# Serializes every read-modify-write of the shared state file. All browser
+# sessions are threads of the single Streamlit process, so one module-level
+# lock covers them all. Reentrant because enforcement paths nest (e.g.
+# apply_pick_autopick falls back into apply_pick_timeout).
+_STATE_LOCK = threading.RLock()
+
+
+@contextmanager
+def shared_state_lock():
+    """Hold this around refresh → validate → mutate → save so no other session
+    can write the state file between the read and the write."""
+    with _STATE_LOCK:
+        yield
+
 
 _SESSION_DEFAULTS = {
     "phase": "setup",
@@ -35,8 +53,8 @@ _SESSION_DEFAULTS = {
     "is_admin": False,
     # Monotonic save counter used to order concurrent saves.
     "state_version": 0,
-    # (mtime_ns, size) of the state file as last loaded by THIS session; the
-    # poller and per-render refresh skip all work while it is unchanged.
+    # DB version as last loaded by THIS session; the poller and per-render
+    # refresh skip all work while it is unchanged.
     "state_signature": None,
     "banned_player_ids": set(),
     "drafted_players": {},
@@ -129,48 +147,180 @@ def _rehydrate_bans(bans):
     return full
 
 
-def state_file_signature(path=None):
-    """Cheap change marker for the state file: (mtime_ns, size), or None.
+# The state stays one JSON document, stored in a single SQLite row; the
+# version lives in its own column so CAS is enforced by the database itself.
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS draft_state (
+    id      INTEGER PRIMARY KEY CHECK (id = 1),
+    version INTEGER NOT NULL,
+    payload TEXT NOT NULL
+)
+"""
 
-    One os.stat call — used by the live-sync poller and the per-render refresh
-    so unchanged state never costs a JSON parse.
-    """
-    path = path or STATE_FILE
+
+def _connect(path):
+    conn = sqlite3.connect(path, timeout=5)
     try:
-        info = os.stat(path)
-    except OSError:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+    except sqlite3.Error:
+        conn.close()
+        raise
+    return conn
+
+
+def _read_version(path):
+    """The stored version, or None (missing DB / no row / unreadable DB)."""
+    if not os.path.exists(path):
         return None
-    return (info.st_mtime_ns, info.st_size)
+    try:
+        conn = _connect(path)
+        try:
+            row = conn.execute("SELECT version FROM draft_state WHERE id = 1").fetchone()
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
+def _read_doc(path):
+    """(version, state dict) from the DB, or None if there is nothing to read.
+
+    Raises sqlite3.DatabaseError / json.JSONDecodeError on a corrupt DB so
+    load_session_state can set the file aside.
+    """
+    if not os.path.exists(path):
+        return None
+    conn = _connect(path)
+    try:
+        try:
+            row = conn.execute("SELECT version, payload FROM draft_state WHERE id = 1").fetchone()
+        except sqlite3.OperationalError:
+            return None  # no table yet
+    finally:
+        conn.close()
+    if row is None:
+        return None
+    state = json.loads(row[1])
+    if not isinstance(state, dict):
+        return None
+    return row[0], state
+
+
+def _write_doc(path, doc, expected_version):
+    """Compare-and-swap write in one transaction.
+
+    Returns the new version, or None when the row exists but its version no
+    longer matches expected_version (another process saved in between).
+    """
+    payload = json.dumps(doc)
+    new_version = expected_version + 1
+    conn = _connect(path)
+    try:
+        with conn:
+            conn.execute(_SCHEMA)
+            cur = conn.execute(
+                "UPDATE draft_state SET version = ?, payload = ? WHERE id = 1 AND version = ?",
+                (new_version, payload, expected_version),
+            )
+            if cur.rowcount == 1:
+                return new_version
+            cur = conn.execute(
+                "INSERT OR IGNORE INTO draft_state (id, version, payload) VALUES (1, ?, ?)",
+                (new_version, payload),
+            )
+            return new_version if cur.rowcount == 1 else None
+    finally:
+        conn.close()
+
+
+def read_state_doc(path=None):
+    """The current state document, or None. Used by tests to inspect the DB."""
+    doc = _read_doc(path or STATE_FILE)
+    return doc[1] if doc else None
+
+
+def write_state_doc(path, doc, version=None):
+    """Store doc as the single state row, overwriting whatever is there.
+
+    Used by tests (and the legacy-JSON import) to simulate another device
+    writing. version defaults to the doc's state_version key, else current+1
+    so a plain write always looks like a remote change. Returns the version.
+    """
+    doc = dict(doc)
+    doc_version = doc.pop("state_version", None)
+    if version is None:
+        version = doc_version
+    if version is None:
+        current = _read_version(path)
+        version = (current or 0) + 1
+    conn = _connect(path)
+    try:
+        with conn:
+            conn.execute(_SCHEMA)
+            conn.execute(
+                "INSERT INTO draft_state (id, version, payload) VALUES (1, ?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET version = excluded.version, payload = excluded.payload",
+                (version, json.dumps(doc)),
+            )
+    finally:
+        conn.close()
+    return version
+
+
+def state_file_signature(path=None):
+    """Cheap change marker for the shared state: the DB version, or None.
+
+    One indexed single-row SELECT — used by the live-sync poller and the
+    per-render refresh so unchanged state never costs a payload parse.
+    """
+    return _read_version(path or STATE_FILE)
 
 
 def peek_state_version(path=None):
-    """The state_version currently on disk, without touching session state.
+    """The version currently in the DB, without touching session state.
 
-    On a missing file or read error, returns the in-memory version so a
+    On a missing DB or read error, returns the in-memory version so a
     transient failure never looks like a remote change (no rerun storms).
     """
-    path = path or STATE_FILE
-    fallback = st.session_state.get("state_version", 0)
-    if not os.path.exists(path):
-        return fallback
-    try:
-        with open(path, "r") as f:
-            state = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return fallback
-    if not isinstance(state, dict):
-        return fallback
-    return state.get("state_version", 0)
+    version = _read_version(path or STATE_FILE)
+    if version is None:
+        return st.session_state.get("state_version", 0)
+    return version
 
 
-def save_session_state(path=None):
-    """Serialize and save the current draft state to disk (atomically)."""
+def save_session_state(path=None, expected_version=None):
+    """Serialize and save the current draft state to the DB (one transaction).
+
+    When expected_version is given, the write only happens if the stored
+    version still matches it (compare-and-swap, enforced by the database); a
+    mismatch means another session saved in between and the caller must
+    refresh and re-validate. Returns True when the state was written.
+    """
     path = path or STATE_FILE
-    # Base the new version on the disk value, not memory, so two sessions that
-    # alternate saves always produce strictly increasing versions.
-    new_version = peek_state_version(path) + 1
-    state_to_save = {
-        "state_version": new_version,
+    with _STATE_LOCK:
+        disk_version = _read_version(path)
+        if disk_version is None:
+            # Missing DB/row: base the first version on memory so versions
+            # stay monotonic across a reset.
+            disk_version = st.session_state.get("state_version", 0)
+        if expected_version is not None and disk_version != expected_version:
+            return False
+        try:
+            new_version = _write_doc(path, _build_state_doc(), disk_version)
+        except (sqlite3.Error, TypeError, ValueError) as e:
+            st.warning(f"Could not save draft state: {e}")
+            return False
+        if new_version is None:
+            return False
+        st.session_state.state_version = new_version
+        st.session_state.state_signature = new_version
+        return True
+
+
+def _build_state_doc():
+    return {
         "phase": st.session_state.get("phase", "setup"),
         "participants": st.session_state.get("participants", []),
         "team_names": st.session_state.get("team_names", {}),
@@ -189,39 +339,51 @@ def save_session_state(path=None):
         "pick_deadline": st.session_state.get("pick_deadline"),
         "last_timeout": st.session_state.get("last_timeout"),
     }
-    tmp_path = f"{path}.tmp"
+
+
+def _import_legacy_json(path):
+    """One-time import of a pre-SQLite draft_state.json next to the DB.
+
+    Returns (version, state dict) when a legacy file was imported, else None.
+    The JSON file is renamed to .imported so this only ever happens once.
+    """
+    legacy = os.path.join(os.path.dirname(path) or ".", LEGACY_STATE_JSON)
+    if not os.path.exists(legacy):
+        return None
     try:
-        with open(tmp_path, "w") as f:
-            json.dump(state_to_save, f)
-        os.replace(tmp_path, path)
-        st.session_state.state_version = new_version
-        st.session_state.state_signature = state_file_signature(path)
-    except (OSError, TypeError, ValueError) as e:
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass
-        st.warning(f"Could not save draft state: {e}")
+        with open(legacy, "r") as f:
+            state = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(state, dict):
+        return None
+    version = write_state_doc(path, state, version=state.get("state_version") or 1)
+    try:
+        os.replace(legacy, f"{legacy}.imported")
+    except OSError:
+        pass
+    state.pop("state_version", None)
+    return version, state
 
 
 def load_session_state(path=None):
-    """Load saved draft state from disk if it exists. Returns True on success."""
+    """Load saved draft state from the DB if it exists. Returns True on success."""
     path = path or STATE_FILE
-    if not os.path.exists(path):
-        return False
-    # Signature taken before the read: if another session writes in between,
-    # the stale signature only costs one extra refresh, never a missed one.
-    signature = state_file_signature(path)
-    try:
-        with open(path, "r") as f:
-            state = json.load(f)
-    except (OSError, json.JSONDecodeError) as e:
+    with _STATE_LOCK:
         try:
-            os.replace(path, f"{path}.corrupt")
-        except OSError:
-            pass
-        st.warning(f"Saved draft state could not be read and was set aside: {e}")
-        return False
+            doc = _read_doc(path)
+        except (sqlite3.DatabaseError, json.JSONDecodeError) as e:
+            try:
+                os.replace(path, f"{path}.corrupt")
+            except OSError:
+                pass
+            st.warning(f"Saved draft state could not be read and was set aside: {e}")
+            return False
+        if doc is None:
+            doc = _import_legacy_json(path)
+        if doc is None:
+            return False
+    signature, state = doc
 
     try:
         st.session_state.phase = state.get("phase", "setup")
@@ -241,7 +403,7 @@ def load_session_state(path=None):
         st.session_state.removed_participants = state.get("removed_participants", {})
         st.session_state.pick_deadline = state.get("pick_deadline")
         st.session_state.last_timeout = state.get("last_timeout")
-        st.session_state.state_version = state.get("state_version", 0)
+        st.session_state.state_version = signature
         st.session_state.state_signature = signature
         return True
     except (AttributeError, TypeError) as e:
@@ -250,27 +412,25 @@ def load_session_state(path=None):
 
 
 def refresh_shared_state(path=None):
-    """Re-read the multi-user keys from disk so concurrent browser sessions converge.
+    """Re-read the multi-user keys from the DB so concurrent sessions converge.
 
-    init_session_state() loads the state file only once per browser session, so
+    init_session_state() loads the state only once per browser session, so
     without this a participant's tab would never see submissions made from
     another device. Per-session keys (e.g. authed_participant) are untouched.
     """
     path = path or STATE_FILE
-    signature = state_file_signature(path)
-    if signature is None:
-        return
-    # Nothing changed on disk since this session last loaded it: skip the
-    # JSON parse and rehydration entirely (this runs on every rerun).
-    if signature == st.session_state.get("state_signature"):
+    # Nothing changed since this session last loaded the state: skip the
+    # payload parse and rehydration entirely (this runs on every rerun).
+    version = _read_version(path)
+    if version is None or version == st.session_state.get("state_signature"):
         return
     try:
-        with open(path, "r") as f:
-            state = json.load(f)
-    except (OSError, json.JSONDecodeError):
+        doc = _read_doc(path)
+    except (sqlite3.DatabaseError, json.JSONDecodeError):
         return
-    if not isinstance(state, dict):
+    if doc is None:
         return
+    signature, state = doc
     st.session_state.phase = state.get("phase", st.session_state.get("phase", "setup"))
     st.session_state.participants = state.get("participants", [])
     st.session_state.team_names = state.get("team_names", {})
@@ -288,7 +448,7 @@ def refresh_shared_state(path=None):
     st.session_state.removed_participants = state.get("removed_participants", {})
     st.session_state.pick_deadline = state.get("pick_deadline")
     st.session_state.last_timeout = state.get("last_timeout")
-    st.session_state.state_version = state.get("state_version", 0)
+    st.session_state.state_version = signature
     st.session_state.state_signature = signature
 
 
@@ -300,6 +460,14 @@ def remove_participant(name):
     starts (current_pick_index is 0). The participant's data is stashed in
     removed_participants so restore_participant() can bring them back.
     """
+    with _STATE_LOCK:
+        refresh_shared_state()
+        if name not in st.session_state.participants:
+            return
+        _remove_participant_locked(name)
+
+
+def _remove_participant_locked(name):
     base_order = _base_pick_order()
     st.session_state.removed_participants[name] = {
         "team_name": st.session_state.team_names.get(name, f"{name} FC"),
@@ -353,9 +521,15 @@ def restore_participant(name):
     go through the ban phase again. Their picks rejoin the snake sequence at
     the original position where possible. Safe only before the draft starts.
     """
-    stash = st.session_state.removed_participants.pop(name, None)
-    if stash is None:
-        return
+    with _STATE_LOCK:
+        refresh_shared_state()
+        stash = st.session_state.removed_participants.pop(name, None)
+        if stash is None:
+            return
+        _restore_participant_locked(name, stash)
+
+
+def _restore_participant_locked(name, stash):
 
     st.session_state.participants.append(name)
     st.session_state.team_names[name] = stash["team_name"]
@@ -388,12 +562,12 @@ def init_session_state():
 
 
 def reset_session_state(path=None):
-    """Wipe the in-memory session and the on-disk state file."""
+    """Wipe the in-memory session and the on-disk state DB (with WAL sidecars)."""
     path = path or STATE_FILE
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    if os.path.exists(path):
+    for target in (path, f"{path}-wal", f"{path}-shm"):
         try:
-            os.remove(path)
+            os.remove(target)
         except OSError:
             pass

@@ -4,7 +4,7 @@ import time
 
 import streamlit as st
 
-from fcdraft.config import ADMIN_LABEL, PICK_TIMER_SECONDS
+from fcdraft.config import ADMIN_LABEL, AUTOPICK_GRACE_SECONDS, PICK_TIMER_SECONDS
 from fcdraft.draft import apply_pick_autopick, auto_draft_remaining, commit_pick, reset_pick_deadline
 from fcdraft.formations import build_slot_list, get_base_position, position_label_pt, slot_label_pt
 from fcdraft.gateway import (
@@ -24,15 +24,17 @@ from fcdraft.search import (
     search_players,
 )
 from fcdraft.cards import render_preview_card
-from fcdraft.state import save_session_state
+from fcdraft.state import refresh_shared_state, save_session_state, shared_state_lock
 
 
 @st.fragment(run_every="1s")
 def _pick_timer_fragment():
     """Countdown for the current pick; auto-picks for the on-clock picker on expiry.
 
-    Any open session may trigger the timeout — apply_pick_autopick() re-checks
-    the freshest shared state so concurrent enforcement lands only once.
+    Only the on-clock picker's (or an admin's) session enforces the expiry;
+    other sessions step in after a short grace period in case the picker's
+    tab is gone. They otherwise just wait for the live-sync poller to show
+    the result, which avoids N sessions racing to auto-pick at once.
     """
     deadline = st.session_state.get("pick_deadline")
     if deadline is None or st.session_state.current_pick_index >= len(st.session_state.draft_sequence):
@@ -40,8 +42,16 @@ def _pick_timer_fragment():
 
     remaining = deadline - time.time()
     if remaining <= 0:
-        apply_pick_autopick(deadline)
-        st.rerun(scope="app")
+        picker = st.session_state.draft_sequence[st.session_state.current_pick_index]["participant"]
+        is_enforcer = (
+            st.session_state.get("authed_participant") == picker
+            or st.session_state.get("is_admin")
+            or remaining <= -AUTOPICK_GRACE_SECONDS
+        )
+        if is_enforcer:
+            apply_pick_autopick(deadline)
+            st.rerun(scope="app")
+        return
 
     color = "#ff4b4b" if remaining < 15 else "#ffd700"
     minutes, seconds = divmod(int(remaining), 60)
@@ -111,19 +121,24 @@ def _render_sidebar(curr_idx, seq):
     if is_admin and curr_idx > 0:
         st.write(" ")
         if st.button("↩️ Undo Last Pick", use_container_width=True, type="secondary"):
-            prev_idx = curr_idx - 1
-            prev_picker = seq[prev_idx]["participant"]
+            with shared_state_lock():
+                refresh_shared_state()
+                curr_idx = st.session_state.current_pick_index
+                seq = st.session_state.draft_sequence
+                if curr_idx > 0:
+                    prev_idx = curr_idx - 1
+                    prev_picker = seq[prev_idx]["participant"]
 
-            if st.session_state.draft_history:
-                last_log = st.session_state.draft_history.pop()
-                slot_to_remove = last_log["slot"]
-                if slot_to_remove in st.session_state.drafted_players[prev_picker]:
-                    del st.session_state.drafted_players[prev_picker][slot_to_remove]
+                    if st.session_state.draft_history:
+                        last_log = st.session_state.draft_history.pop()
+                        slot_to_remove = last_log["slot"]
+                        if slot_to_remove in st.session_state.drafted_players.get(prev_picker, {}):
+                            del st.session_state.drafted_players[prev_picker][slot_to_remove]
 
-            st.session_state.current_pick_index = prev_idx
-            st.success("Successfully undid the last draft pick!")
-            reset_pick_deadline()
-            save_session_state()
+                    st.session_state.current_pick_index = prev_idx
+                    st.success("Successfully undid the last draft pick!")
+                    reset_pick_deadline()
+                    save_session_state()
             st.rerun()
 
     if is_admin and curr_idx < len(seq):
@@ -133,9 +148,11 @@ def _render_sidebar(curr_idx, seq):
             auto_run_confirm = st.text_input("Type 'auto run' to confirm:", value="", key="auto_run_confirm_input").strip().lower()
             if auto_run_confirm == "auto run":
                 if st.button("🚀 Execute Auto-Draft", type="primary", use_container_width=True):
-                    auto_draft_remaining()
-                    st.success("Auto-draft complete!")
-                    save_session_state()
+                    with shared_state_lock():
+                        refresh_shared_state()
+                        auto_draft_remaining()
+                        st.success("Auto-draft complete!")
+                        save_session_state()
                     st.rerun()
 
     with st.expander("🚫 Banned Players List (Ranked by OVR)"):
@@ -211,9 +228,13 @@ def _render_draft_room(curr_idx, seq, picker):
 
         if not empty_slots:
             st.warning("All slots are filled for this squad.")
-            st.session_state.current_pick_index += 1
-            reset_pick_deadline()
-            save_session_state()
+            with shared_state_lock():
+                refresh_shared_state()
+                # Only advance if the draft is still on the pick we rendered.
+                if st.session_state.current_pick_index == curr_idx:
+                    st.session_state.current_pick_index += 1
+                    reset_pick_deadline()
+                    save_session_state()
             st.rerun()
 
         selected_slot = st.selectbox(
@@ -375,8 +396,11 @@ def render():
     if curr_idx < len(seq):
         # Old state file (or fresh draft) without a running clock: start one now.
         if st.session_state.get("pick_deadline") is None:
-            reset_pick_deadline()
-            save_session_state()
+            with shared_state_lock():
+                refresh_shared_state()
+                if st.session_state.get("pick_deadline") is None:
+                    reset_pick_deadline()
+                    save_session_state()
         _render_timeout_notice()
         _pick_timer_fragment()
 
@@ -396,6 +420,13 @@ def render():
         with tab_pitch:
             _render_pitch_tab(on_clock if is_my_turn else None)
     else:
-        st.session_state.phase = "completed"
-        save_session_state()
+        with shared_state_lock():
+            refresh_shared_state()
+            # Re-check after refresh: an admin undo may have rewound the draft.
+            if (
+                st.session_state.current_pick_index >= len(st.session_state.draft_sequence)
+                and st.session_state.phase != "completed"
+            ):
+                st.session_state.phase = "completed"
+                save_session_state()
         st.rerun()

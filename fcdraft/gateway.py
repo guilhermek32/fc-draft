@@ -10,7 +10,12 @@ import streamlit as st
 
 from fcdraft.auth import check_credential, issue_auth_token, revoke_auth_token, set_credential
 from fcdraft.config import ADMIN_LABEL, ADMIN_NAME, LIVE_SYNC_INTERVAL
-from fcdraft.state import save_session_state, state_file_signature
+from fcdraft.state import (
+    refresh_shared_state,
+    save_session_state,
+    shared_state_lock,
+    state_file_signature,
+)
 
 
 @st.fragment(run_every=LIVE_SYNC_INTERVAL)
@@ -33,11 +38,34 @@ def get_authed_participant():
     return authed
 
 
-def _finish_login(participant=None, is_admin=False):
-    """Issue a URL token so the login survives pitch-click page navigations."""
-    token = issue_auth_token(participant, is_admin)
-    st.session_state.auth_token = token
-    save_session_state()
+def _finish_login(participant=None, is_admin=False, claim_password=None):
+    """Issue a URL token so the login survives pitch-click page navigations.
+
+    Refreshes shared state under the lock before saving, so a login never
+    overwrites a pick another session made in the meantime. claim_password
+    handles legacy state files: the credential is (re-)claimed only after the
+    refresh, against the freshest credentials on disk.
+    """
+    with shared_state_lock():
+        refresh_shared_state()
+        if participant is not None and participant not in st.session_state.participants:
+            st.session_state.authed_participant = None
+            st.error("This participant is no longer part of the draft.")
+            return
+        if claim_password is not None:
+            name = ADMIN_NAME if is_admin else participant
+            if name in st.session_state.auth_credentials:
+                # Someone claimed this name between render and click.
+                if not check_credential(name, claim_password):
+                    st.session_state.authed_participant = None
+                    st.session_state.is_admin = False
+                    st.error("Incorrect password.")
+                    return
+            else:
+                set_credential(name, claim_password)
+        token = issue_auth_token(participant, is_admin)
+        st.session_state.auth_token = token
+        save_session_state()
     st.query_params["auth"] = token
     st.rerun()
 
@@ -65,16 +93,14 @@ def render_login_gateway(key_prefix=""):
             elif ADMIN_NAME not in st.session_state.auth_credentials:
                 # Legacy state file created before the admin superuser existed:
                 # the first admin login claims the password.
-                set_credential(ADMIN_NAME, password)
                 st.session_state.is_admin = True
-                _finish_login(is_admin=True)
+                _finish_login(is_admin=True, claim_password=password)
             else:
                 st.error("Incorrect password.")
         elif name not in st.session_state.auth_credentials:
             # Legacy state file created before passwords existed: claim the name.
-            set_credential(name, password)
             st.session_state.authed_participant = name
-            _finish_login(name)
+            _finish_login(name, claim_password=password)
         elif check_credential(name, password):
             st.session_state.authed_participant = name
             _finish_login(name)
@@ -83,8 +109,10 @@ def render_login_gateway(key_prefix=""):
 
 
 def logout():
-    revoke_auth_token(st.session_state.get("auth_token"))
-    save_session_state()
+    with shared_state_lock():
+        refresh_shared_state()
+        revoke_auth_token(st.session_state.get("auth_token"))
+        save_session_state()
     st.session_state.auth_token = None
     st.session_state.authed_participant = None
     st.session_state.is_admin = False

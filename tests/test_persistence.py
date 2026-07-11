@@ -4,10 +4,12 @@ import json
 import streamlit as st
 import app
 
+from fcdraft.state import read_state_doc, write_state_doc
+
 
 def test_save_and_load_session_state(tmp_path, monkeypatch, mock_streamlit_state):
     """Test that save_session_state saves data to disk, and load_session_state restores it."""
-    test_state_file = tmp_path / "test_draft_state.json"
+    test_state_file = tmp_path / "test_draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     # 1. Setup mock session state data
@@ -27,18 +29,15 @@ def test_save_and_load_session_state(tmp_path, monkeypatch, mock_streamlit_state
     # Save state
     app.save_session_state()
 
-    # Check that file was created
+    # Check that the DB was created
     assert test_state_file.exists()
-    # Atomic write must not leave a temp file behind
-    assert not (tmp_path / "test_draft_state.json.tmp").exists()
 
     # Check saved content
-    with open(test_state_file, "r") as f:
-        data = json.load(f)
-        assert data["participants"] == ["Alice", "Bob"]
-        assert data["bench_slots"] == 3
-        assert data["formations"] == {"Alice": "4-3-3", "Bob": "3-5-2"}
-        assert data["ban_submissions"] == {"Alice": True, "Bob": False}
+    data = read_state_doc(str(test_state_file))
+    assert data["participants"] == ["Alice", "Bob"]
+    assert data["bench_slots"] == 3
+    assert data["formations"] == {"Alice": "4-3-3", "Bob": "3-5-2"}
+    assert data["ban_submissions"] == {"Alice": True, "Bob": False}
 
     # 2. Clear state store and verify load restores it
     mock_streamlit_state.clear()
@@ -56,8 +55,8 @@ def test_save_and_load_session_state(tmp_path, monkeypatch, mock_streamlit_state
 
 
 def test_load_non_existent_state(tmp_path, monkeypatch, mock_streamlit_state):
-    """Verify that load_session_state returns False if state file does not exist."""
-    test_state_file = tmp_path / "non_existent_file.json"
+    """Verify that load_session_state returns False if the state DB does not exist."""
+    test_state_file = tmp_path / "non_existent_file.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state.clear()
@@ -66,15 +65,37 @@ def test_load_non_existent_state(tmp_path, monkeypatch, mock_streamlit_state):
 
 
 def test_load_corrupt_state(tmp_path, monkeypatch, mock_streamlit_state):
-    """A corrupt state file is set aside as .corrupt and load returns False."""
-    test_state_file = tmp_path / "draft_state.json"
-    test_state_file.write_text("{not valid json !!!")
+    """A corrupt state DB is set aside as .corrupt and load returns False."""
+    test_state_file = tmp_path / "draft_state.db"
+    test_state_file.write_bytes(b"this is definitely not a sqlite database !!!")
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     success = app.load_session_state()
     assert not success
     assert not test_state_file.exists()
-    assert (tmp_path / "draft_state.json.corrupt").exists()
+    assert (tmp_path / "draft_state.db.corrupt").exists()
+
+
+def test_legacy_json_migrates_into_db(tmp_path, monkeypatch, mock_streamlit_state):
+    """A pre-SQLite draft_state.json is imported into the DB once and renamed."""
+    from fcdraft.state import peek_state_version
+
+    test_state_file = tmp_path / "draft_state.db"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    legacy_file = tmp_path / "draft_state.json"
+    legacy_file.write_text(json.dumps({
+        "state_version": 7, "phase": "ban", "participants": ["Alice"], "bans": {"Alice": []},
+    }))
+
+    assert app.load_session_state()
+    assert mock_streamlit_state["participants"] == ["Alice"]
+    assert mock_streamlit_state["state_version"] == 7
+    assert peek_state_version() == 7
+    # The JSON was renamed so the import never repeats
+    assert not legacy_file.exists()
+    assert (tmp_path / "draft_state.json.imported").exists()
+    assert read_state_doc(str(test_state_file))["phase"] == "ban"
 
 
 def test_drafted_players_saved_as_id_refs(tmp_path, monkeypatch, mock_streamlit_state):
@@ -83,7 +104,7 @@ def test_drafted_players_saved_as_id_refs(tmp_path, monkeypatch, mock_streamlit_
     real_player = df.iloc[0].to_dict()
     fake_player = {"player_id": "imported_Alice_ST", "short_name": "Ghost", "overall": 70}
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["drafted_players"] = {
@@ -91,8 +112,7 @@ def test_drafted_players_saved_as_id_refs(tmp_path, monkeypatch, mock_streamlit_
     }
     app.save_session_state()
 
-    with open(test_state_file) as f:
-        data = json.load(f)
+    data = read_state_doc(str(test_state_file))
     # Known player collapses to its id; unknown player keeps the full dict
     assert data["drafted_players"]["Alice"]["ST"] == str(real_player["player_id"])
     assert data["drafted_players"]["Alice"]["SUB 1"]["short_name"] == "Ghost"
@@ -111,16 +131,15 @@ def test_save_with_full_player_dicts_is_json_safe(tmp_path, monkeypatch, mock_st
     player = df.iloc[0].to_dict()
     assert isinstance(player.get("pos_set"), frozenset)  # precondition
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["bans"] = {"Alice": [{**player, "player_id": "not_in_db"}]}
     mock_streamlit_state["drafted_players"] = {"Alice": {"ST": {**player, "player_id": "not_in_db"}}}
     app.save_session_state()
 
-    assert test_state_file.exists(), "save silently failed"
-    assert not (tmp_path / "draft_state.json.tmp").exists()
-    data = json.load(open(test_state_file))
+    data = read_state_doc(str(test_state_file))
+    assert data is not None, "save silently failed"
     assert data["bans"]["Alice"][0]["short_name"] == player["short_name"]
     assert "pos_set" not in data["bans"]["Alice"][0]
     assert "pos_set" not in data["drafted_players"]["Alice"]["ST"]
@@ -131,14 +150,13 @@ def test_bans_saved_as_id_refs_without_player_names(tmp_path, monkeypatch, mock_
     df = app.load_data()
     real_player = df.iloc[0].to_dict()
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["bans"] = {"Alice": [real_player]}
     app.save_session_state()
 
-    with open(test_state_file) as f:
-        data = json.load(f)
+    data = read_state_doc(str(test_state_file))
     assert data["bans"]["Alice"] == [str(real_player["player_id"])]
     assert real_player["short_name"] not in json.dumps(data["bans"])
 
@@ -153,14 +171,14 @@ def test_auth_credentials_round_trip_without_plaintext(tmp_path, monkeypatch, mo
     """Credentials persist as salted hashes; plaintext passwords never reach disk."""
     from fcdraft.auth import check_credential, set_credential
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["auth_credentials"] = {}
     set_credential("Alice", "hunter2")
     app.save_session_state()
 
-    assert "hunter2" not in test_state_file.read_text()
+    assert "hunter2" not in json.dumps(read_state_doc(str(test_state_file)))
 
     mock_streamlit_state.clear()
     assert app.load_session_state()
@@ -169,12 +187,12 @@ def test_auth_credentials_round_trip_without_plaintext(tmp_path, monkeypatch, mo
 
 
 def test_legacy_state_without_credentials_loads(tmp_path, monkeypatch, mock_streamlit_state):
-    """State files written before passwords existed load with empty credentials."""
-    test_state_file = tmp_path / "draft_state.json"
+    """State documents written before passwords existed load with empty credentials."""
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     legacy = {"phase": "ban", "participants": ["Alice"], "bans": {"Alice": []}}
-    test_state_file.write_text(json.dumps(legacy))
+    write_state_doc(str(test_state_file), legacy)
 
     assert app.load_session_state()
     assert mock_streamlit_state["auth_credentials"] == {}
@@ -184,7 +202,7 @@ def test_refresh_shared_state_picks_up_other_sessions(tmp_path, monkeypatch, moc
     """refresh_shared_state re-reads shared keys from disk without touching login state."""
     from fcdraft.state import refresh_shared_state
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     on_disk = {
@@ -199,7 +217,7 @@ def test_refresh_shared_state_picks_up_other_sessions(tmp_path, monkeypatch, moc
         "draft_history": [{"picker": "Alice", "slot": "ST"}],
         "state_version": 7,
     }
-    test_state_file.write_text(json.dumps(on_disk))
+    write_state_doc(str(test_state_file), on_disk)
 
     mock_streamlit_state["ban_submissions"] = {"Alice": False, "Bob": False}
     mock_streamlit_state["current_pick_index"] = 0
@@ -221,13 +239,13 @@ def test_refresh_shared_state_picks_up_other_sessions(tmp_path, monkeypatch, moc
 
 
 def test_state_version_increments_from_disk(tmp_path, monkeypatch, mock_streamlit_state):
-    """Saves base the version on the disk value so alternating writers never repeat."""
+    """Saves base the version on the stored value so alternating writers never repeat."""
     from fcdraft.state import peek_state_version
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
-    test_state_file.write_text(json.dumps({"state_version": 5}))
+    write_state_doc(str(test_state_file), {}, version=5)
     mock_streamlit_state["state_version"] = 0  # stale in-memory value
     app.save_session_state()
 
@@ -236,22 +254,22 @@ def test_state_version_increments_from_disk(tmp_path, monkeypatch, mock_streamli
 
 
 def test_peek_state_version_fallbacks(tmp_path, monkeypatch, mock_streamlit_state):
-    """Missing file or legacy file without the key never looks like a remote change."""
+    """A missing DB never looks like a remote change; a stored row wins over memory."""
     from fcdraft.state import peek_state_version
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["state_version"] = 3
-    assert peek_state_version() == 3  # missing file -> in-memory value
+    assert peek_state_version() == 3  # missing DB -> in-memory value
 
-    test_state_file.write_text(json.dumps({"phase": "ban"}))  # legacy, no version key
-    assert peek_state_version() == 0
+    write_state_doc(str(test_state_file), {"phase": "ban"}, version=12)
+    assert peek_state_version() == 12
 
 
 def test_authed_participant_never_persisted(tmp_path, monkeypatch, mock_streamlit_state):
     """The per-browser login key must not be written to disk."""
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["authed_participant"] = "Alice"
@@ -259,8 +277,7 @@ def test_authed_participant_never_persisted(tmp_path, monkeypatch, mock_streamli
     mock_streamlit_state["auth_token"] = "session-own-token"
     app.save_session_state()
 
-    with open(test_state_file) as f:
-        data = json.load(f)
+    data = read_state_doc(str(test_state_file))
     assert "authed_participant" not in data
     assert "generated_passwords" not in data
     assert "abc23456" not in json.dumps(data)
@@ -271,7 +288,7 @@ def test_auth_tokens_round_trip_and_refresh(tmp_path, monkeypatch, mock_streamli
     """The token map persists and is picked up by refresh_shared_state."""
     from fcdraft.state import refresh_shared_state
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["auth_tokens"] = {"tok1": {"participant": "Alice", "is_admin": False}}
@@ -281,9 +298,9 @@ def test_auth_tokens_round_trip_and_refresh(tmp_path, monkeypatch, mock_streamli
     assert app.load_session_state()
     assert mock_streamlit_state["auth_tokens"] == {"tok1": {"participant": "Alice", "is_admin": False}}
 
-    # Simulate a session that has not seen the file yet (no stat signature):
-    # refresh must pick the tokens up from disk. A session whose signature
-    # matches the file skips the reload by design.
+    # Simulate a session that has not seen the state yet (no version signature):
+    # refresh must pick the tokens up from the DB. A session whose signature
+    # matches the stored version skips the reload by design.
     mock_streamlit_state["auth_tokens"] = {}
     mock_streamlit_state.pop("state_signature", None)
     refresh_shared_state()
@@ -291,10 +308,10 @@ def test_auth_tokens_round_trip_and_refresh(tmp_path, monkeypatch, mock_streamli
 
 
 def test_refresh_skips_reload_when_file_unchanged(tmp_path, monkeypatch, mock_streamlit_state):
-    """An unchanged state file must not be re-read on every rerun."""
+    """An unchanged state DB must not be re-read on every rerun."""
     from fcdraft.state import refresh_shared_state
 
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["auth_tokens"] = {"tok1": {"participant": "Alice", "is_admin": False}}
@@ -307,21 +324,23 @@ def test_refresh_skips_reload_when_file_unchanged(tmp_path, monkeypatch, mock_st
 
 
 def test_state_file_is_gitignored():
-    """The plaintext-adjacent state file must never be committable."""
+    """The plaintext-adjacent state DB (and its WAL sidecars) must never be committable."""
     import subprocess
     from fcdraft.config import STATE_FILE
 
-    result = subprocess.run(
-        ["git", "check-ignore", STATE_FILE],
-        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        capture_output=True,
-    )
-    assert result.returncode == 0, f"{STATE_FILE} is not gitignored"
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for target in (STATE_FILE, f"{STATE_FILE}-wal", f"{STATE_FILE}-shm"):
+        result = subprocess.run(
+            ["git", "check-ignore", target],
+            cwd=repo_root,
+            capture_output=True,
+        )
+        assert result.returncode == 0, f"{target} is not gitignored"
 
 
 def test_banned_ids_round_trip_as_set(tmp_path, monkeypatch, mock_streamlit_state):
     """banned_player_ids is saved as a list but always loaded back as a set."""
-    test_state_file = tmp_path / "draft_state.json"
+    test_state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
 
     mock_streamlit_state["banned_player_ids"] = {"3", "1", "2"}
@@ -330,3 +349,52 @@ def test_banned_ids_round_trip_as_set(tmp_path, monkeypatch, mock_streamlit_stat
     assert app.load_session_state()
     assert mock_streamlit_state["banned_player_ids"] == {"1", "2", "3"}
     assert isinstance(mock_streamlit_state["banned_player_ids"], set)
+
+
+def test_save_cas_rejects_stale_expected_version(tmp_path, monkeypatch, mock_streamlit_state):
+    """save_session_state(expected_version=...) only writes when the DB still matches."""
+    from fcdraft.state import peek_state_version, save_session_state
+
+    test_state_file = tmp_path / "draft_state.db"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    write_state_doc(str(test_state_file), {"phase": "draft"}, version=5)
+    before = read_state_doc(str(test_state_file))
+
+    mock_streamlit_state["state_version"] = 3  # this session lost a race
+    assert save_session_state(expected_version=3) is False
+    assert read_state_doc(str(test_state_file)) == before  # nothing written
+    assert peek_state_version() == 5
+
+    assert save_session_state(expected_version=5) is True
+    assert peek_state_version() == 6
+
+
+def test_write_state_doc_bumps_version_by_default(tmp_path, monkeypatch, mock_streamlit_state):
+    """A plain write_state_doc always looks like a remote change to other sessions."""
+    from fcdraft.state import peek_state_version
+
+    test_state_file = tmp_path / "draft_state.db"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    write_state_doc(str(test_state_file), {"phase": "ban"})
+    assert peek_state_version() == 1
+    write_state_doc(str(test_state_file), {"phase": "draft"})
+    assert peek_state_version() == 2
+    # A doc-embedded state_version key lands in the version column, not the payload.
+    write_state_doc(str(test_state_file), {"phase": "draft", "state_version": 12})
+    assert peek_state_version() == 12
+    assert "state_version" not in read_state_doc(str(test_state_file))
+
+
+def test_save_without_expected_version_keeps_unconditional_behavior(tmp_path, monkeypatch, mock_streamlit_state):
+    """Callers that pass no expected_version still always write (and report success)."""
+    from fcdraft.state import peek_state_version
+
+    test_state_file = tmp_path / "draft_state.db"
+    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
+
+    write_state_doc(str(test_state_file), {}, version=9)
+    mock_streamlit_state["state_version"] = 2  # stale, but no CAS requested
+    assert app.save_session_state() is True
+    assert peek_state_version() == 10

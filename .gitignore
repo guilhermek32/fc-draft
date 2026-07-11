@@ -11,6 +11,9 @@ __pycache__/
 
 # Local Streamlit config / state
 draft_state.json
+draft_state.db
+draft_state.db-wal
+draft_state.db-shm
 image_cache/
 test_app.py
 test_render.py

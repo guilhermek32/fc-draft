@@ -8,7 +8,7 @@ from fcdraft.config import PICK_TIMER_SECONDS
 from fcdraft.data import load_data
 from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.search import allowed_positions, get_excluded_ids, get_picked_by
-from fcdraft.state import refresh_shared_state, save_session_state
+from fcdraft.state import refresh_shared_state, save_session_state, shared_state_lock
 
 
 def reset_pick_deadline():
@@ -25,34 +25,37 @@ def apply_pick_timeout(expired_deadline):
     All of their remaining picks move to the end of the draft sequence
     (everyone else's order is preserved, as is the relative order of picks
     already relegated). Any open session may call this when it observes an
-    expired deadline; the freshest shared state is re-checked first so that
-    concurrent enforcement from several devices lands only once.
+    expired deadline; the whole refresh → check → save runs under the shared
+    state lock so concurrent enforcement from several devices lands only once.
     """
-    refresh_shared_state()
-    curr_idx = st.session_state.current_pick_index
-    seq = st.session_state.draft_sequence
+    with shared_state_lock():
+        refresh_shared_state()
+        curr_idx = st.session_state.current_pick_index
+        seq = st.session_state.draft_sequence
 
-    if curr_idx >= len(seq):
-        return False
-    deadline = st.session_state.pick_deadline
-    # Another session already handled this expiry (deadline renewed) or the
-    # pick landed in time; also covers deadlines still in the future.
-    if deadline is None or deadline != expired_deadline or time.time() < deadline:
-        return False
+        if curr_idx >= len(seq):
+            return False
+        deadline = st.session_state.pick_deadline
+        # Another session already handled this expiry (deadline renewed) or the
+        # pick landed in time; also covers deadlines still in the future.
+        if deadline is None or deadline != expired_deadline or time.time() < deadline:
+            return False
 
-    picker = seq[curr_idx]["participant"]
-    remaining = seq[curr_idx:]
-    kept = [p for p in remaining if p["participant"] != picker]
-    relegated = [p for p in remaining if p["participant"] == picker]
-    new_seq = seq[:curr_idx] + kept + relegated
-    for idx, pick in enumerate(new_seq, 1):
-        pick["overall_pick"] = idx
+        picker = seq[curr_idx]["participant"]
+        remaining = seq[curr_idx:]
+        kept = [p for p in remaining if p["participant"] != picker]
+        relegated = [p for p in remaining if p["participant"] == picker]
+        new_seq = seq[:curr_idx] + kept + relegated
+        for idx, pick in enumerate(new_seq, 1):
+            pick["overall_pick"] = idx
 
-    st.session_state.draft_sequence = new_seq
-    st.session_state.last_timeout = {"participant": picker, "at_pick": curr_idx + 1}
-    reset_pick_deadline()
-    save_session_state()
-    return True
+        st.session_state.draft_sequence = new_seq
+        st.session_state.last_timeout = {"participant": picker, "at_pick": curr_idx + 1}
+        reset_pick_deadline()
+        if not save_session_state(expected_version=st.session_state.state_version):
+            refresh_shared_state()
+            return False
+        return True
 
 
 def best_available_pick(picker, df, all_excluded, filter_mode="Flexible"):
@@ -92,45 +95,48 @@ def apply_pick_autopick(expired_deadline):
     The picker's first empty slot gets the highest-overall available player, so
     missing the clock never costs the pick and the draft keeps its normal
     order. Any open session may call this when it observes an expired deadline;
-    the freshest shared state is re-checked first so that concurrent
-    enforcement from several devices lands only once.
+    the whole refresh → check → save runs under the shared state lock so
+    concurrent enforcement from several devices lands only once.
     """
-    refresh_shared_state()
-    curr_idx = st.session_state.current_pick_index
-    seq = st.session_state.draft_sequence
+    with shared_state_lock():
+        refresh_shared_state()
+        curr_idx = st.session_state.current_pick_index
+        seq = st.session_state.draft_sequence
 
-    if curr_idx >= len(seq):
-        return False
-    deadline = st.session_state.pick_deadline
-    # Another session already handled this expiry (deadline renewed) or the
-    # pick landed in time; also covers deadlines still in the future.
-    if deadline is None or deadline != expired_deadline or time.time() < deadline:
-        return False
+        if curr_idx >= len(seq):
+            return False
+        deadline = st.session_state.pick_deadline
+        # Another session already handled this expiry (deadline renewed) or the
+        # pick landed in time; also covers deadlines still in the future.
+        if deadline is None or deadline != expired_deadline or time.time() < deadline:
+            return False
 
-    picker = seq[curr_idx]["participant"]
-    best = best_available_pick(picker, load_data(), get_excluded_ids())
-    squad_full = not [
-        slot
-        for slot in build_slot_list(st.session_state.formations[picker], st.session_state.bench_slots)
-        if slot not in st.session_state.drafted_players.get(picker, {})
-    ]
-    if best is None and not squad_full:
-        # Player pool exhausted (extreme edge): fall back to relegation.
-        return apply_pick_timeout(expired_deadline)
+        picker = seq[curr_idx]["participant"]
+        best = best_available_pick(picker, load_data(), get_excluded_ids())
+        squad_full = not [
+            slot
+            for slot in build_slot_list(st.session_state.formations[picker], st.session_state.bench_slots)
+            if slot not in st.session_state.drafted_players.get(picker, {})
+        ]
+        if best is None and not squad_full:
+            # Player pool exhausted (extreme edge): fall back to relegation.
+            return apply_pick_timeout(expired_deadline)
 
-    if best is not None:
-        selected_slot, player = best
-        record_pick(picker, selected_slot, player, curr_idx + 1, seq[curr_idx]["round"])
-        st.session_state.last_timeout = {
-            "participant": picker,
-            "at_pick": curr_idx + 1,
-            "player_name": player["short_name"],
-            "slot": selected_slot,
-        }
-    st.session_state.current_pick_index = curr_idx + 1
-    reset_pick_deadline()
-    save_session_state()
-    return True
+        if best is not None:
+            selected_slot, player = best
+            record_pick(picker, selected_slot, player, curr_idx + 1, seq[curr_idx]["round"])
+            st.session_state.last_timeout = {
+                "participant": picker,
+                "at_pick": curr_idx + 1,
+                "player_name": player["short_name"],
+                "slot": selected_slot,
+            }
+        st.session_state.current_pick_index = curr_idx + 1
+        reset_pick_deadline()
+        if not save_session_state(expected_version=st.session_state.state_version):
+            refresh_shared_state()
+            return False
+        return True
 
 
 def commit_pick(picker, slot, player):
@@ -140,32 +146,36 @@ def commit_pick(picker, slot, player):
     a pick) between this session's render and the button click. Returns True
     when the pick landed, False (with a warning shown) otherwise.
     """
-    refresh_shared_state()
-    curr_idx = st.session_state.current_pick_index
-    seq = st.session_state.draft_sequence
+    with shared_state_lock():
+        refresh_shared_state()
+        curr_idx = st.session_state.current_pick_index
+        seq = st.session_state.draft_sequence
 
-    if curr_idx >= len(seq) or seq[curr_idx]["participant"] != picker:
-        st.warning("The draft has moved on — it is no longer your turn. The board has been refreshed.")
-        return False
-    if st.session_state.get("authed_participant") != picker:
-        st.warning("You must be logged in as the on-clock participant to draft.")
-        return False
-    if slot in st.session_state.drafted_players.get(picker, {}):
-        st.warning(f"Slot {slot} was already filled. Pick another slot.")
-        return False
-    if str(player["player_id"]) in {str(pid) for pid in st.session_state.banned_player_ids}:
-        st.warning(f"{player['short_name']} is banned and cannot be drafted.")
-        return False
-    already_picked_by = get_picked_by().get(str(player["player_id"]))
-    if already_picked_by:
-        st.warning(f"{player['short_name']} was already drafted by {already_picked_by}.")
-        return False
+        if curr_idx >= len(seq) or seq[curr_idx]["participant"] != picker:
+            st.warning("The draft has moved on — it is no longer your turn. The board has been refreshed.")
+            return False
+        if st.session_state.get("authed_participant") != picker:
+            st.warning("You must be logged in as the on-clock participant to draft.")
+            return False
+        if slot in st.session_state.drafted_players.get(picker, {}):
+            st.warning(f"Slot {slot} was already filled. Pick another slot.")
+            return False
+        if str(player["player_id"]) in {str(pid) for pid in st.session_state.banned_player_ids}:
+            st.warning(f"{player['short_name']} is banned and cannot be drafted.")
+            return False
+        already_picked_by = get_picked_by().get(str(player["player_id"]))
+        if already_picked_by:
+            st.warning(f"{player['short_name']} was already drafted by {already_picked_by}.")
+            return False
 
-    record_pick(picker, slot, player, curr_idx + 1, seq[curr_idx]["round"])
-    st.session_state.current_pick_index = curr_idx + 1
-    reset_pick_deadline()
-    save_session_state()
-    return True
+        record_pick(picker, slot, player, curr_idx + 1, seq[curr_idx]["round"])
+        st.session_state.current_pick_index = curr_idx + 1
+        reset_pick_deadline()
+        if not save_session_state(expected_version=st.session_state.state_version):
+            refresh_shared_state()
+            st.warning("The draft state changed while saving your pick. Please try again.")
+            return False
+        return True
 
 
 def record_pick(picker, slot, player, pick_overall, round_number):

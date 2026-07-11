@@ -1,7 +1,9 @@
 """Configuration constants for the EA FC 26 draft app."""
 
 CSV_FILE = "FC26_20250921.csv"
-STATE_FILE = "draft_state.json"
+STATE_FILE = "draft_state.db"
+# Pre-SQLite state file; imported into the DB once and renamed on first load.
+LEGACY_STATE_JSON = "draft_state.json"
 # Under ./static so Streamlit's static file serving (enableStaticServing) can
 # expose the faces at ./app/static/image_cache/ instead of inline base64.
 IMAGE_CACHE_DIR = "static/image_cache"
@@ -38,6 +40,11 @@ LIVE_SYNC_INTERVAL = "2s"
 
 # Seconds each participant has to make a pick before losing their turn
 PICK_TIMER_SECONDS = 90
+
+# After the pick clock expires, only the on-clock picker's (or an admin's)
+# session enforces the auto-pick; any other session steps in only after this
+# grace period, covering a picker who closed their tab.
+AUTOPICK_GRACE_SECONDS = 3
 
 FORMATIONS = {
     "4-3-3": ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],

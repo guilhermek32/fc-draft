@@ -13,7 +13,13 @@ from fcdraft.gateway import (
     render_logout_button,
 )
 from fcdraft.search import format_player_options, search_players
-from fcdraft.state import remove_participant, restore_participant, save_session_state
+from fcdraft.state import (
+    refresh_shared_state,
+    remove_participant,
+    restore_participant,
+    save_session_state,
+    shared_state_lock,
+)
 
 
 def _ranked_bans():
@@ -89,9 +95,12 @@ def _render_ban_picker(picker):
         if not p1_dict or not p2_dict or not p3_dict:
             st.error("Please ensure you have selected three distinct players to ban.")
         else:
-            st.session_state.bans[picker] = [p1_dict, p2_dict, p3_dict]
-            st.session_state.ban_submissions[picker] = True
-            save_session_state()
+            with shared_state_lock():
+                refresh_shared_state()
+                if not st.session_state.ban_submissions.get(picker):
+                    st.session_state.bans[picker] = [p1_dict, p2_dict, p3_dict]
+                    st.session_state.ban_submissions[picker] = True
+                    save_session_state()
             st.rerun()
 
     st.write(" ")
@@ -119,10 +128,13 @@ def _render_random_ban_picker(picker):
                 st.markdown(f"{i}. **{p['short_name']}** ({p['overall']} OVR) — {p['club_name']}")
             st.caption("Roll again to re-draw, or lock these in. Locked bans are final.")
             if st.button("🔒 Lock in These Random Bans", use_container_width=True, type="primary", key=f"lock_random_bans_{picker}"):
-                st.session_state.bans[picker] = proposal
-                st.session_state.ban_submissions[picker] = True
+                with shared_state_lock():
+                    refresh_shared_state()
+                    if not st.session_state.ban_submissions.get(picker):
+                        st.session_state.bans[picker] = proposal
+                        st.session_state.ban_submissions[picker] = True
+                        save_session_state()
                 del st.session_state[proposal_key]
-                save_session_state()
                 st.rerun()
 
 
@@ -150,15 +162,19 @@ def _render_reveal_room():
 
     st.write(" ")
     if st.button("🔥 Reveal Bans & Start Snake Draft", use_container_width=True, type="primary"):
-        banned_player_ids = set()
-        for player_list in st.session_state.bans.values():
-            for p in player_list:
-                banned_player_ids.add(p["player_id"])
+        with shared_state_lock():
+            refresh_shared_state()
+            # Only the first reveal flips the phase; a concurrent click no-ops.
+            if st.session_state.phase == "ban":
+                banned_player_ids = set()
+                for player_list in st.session_state.bans.values():
+                    for p in player_list:
+                        banned_player_ids.add(p["player_id"])
 
-        st.session_state.banned_player_ids = banned_player_ids
-        st.session_state.phase = "draft"
-        reset_pick_deadline()
-        save_session_state()
+                st.session_state.banned_player_ids = banned_player_ids
+                st.session_state.phase = "draft"
+                reset_pick_deadline()
+                save_session_state()
         st.rerun()
 
 

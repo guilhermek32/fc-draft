@@ -30,9 +30,7 @@ def test_get_base_position():
 
 def _seed_commit_state(store, tmp_path, monkeypatch):
     """Draft-phase state on disk + in memory where Alice is on the clock."""
-    import json
-
-    state_file = tmp_path / "draft_state.json"
+    state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(state_file))
 
     store.update({
@@ -71,13 +69,13 @@ def test_commit_pick_happy_path(tmp_path, monkeypatch, mock_streamlit_state):
 
 def test_commit_pick_aborts_when_turn_moved_on(tmp_path, monkeypatch, mock_streamlit_state):
     """Another device already advanced the draft on disk: the stale click must not land."""
-    import json
     from fcdraft.draft import commit_pick
+    from fcdraft.state import read_state_doc, write_state_doc
 
     state_file = _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
-    on_disk = json.loads(state_file.read_text())
+    on_disk = read_state_doc(str(state_file))
     on_disk["current_pick_index"] = 1  # Bob is now on the clock
-    state_file.write_text(json.dumps(on_disk))
+    write_state_doc(str(state_file), on_disk)
 
     assert commit_pick("Alice", "ST", _player()) is False
     assert mock_streamlit_state["current_pick_index"] == 1  # refreshed, not advanced
@@ -95,18 +93,18 @@ def test_commit_pick_aborts_for_wrong_session(tmp_path, monkeypatch, mock_stream
 
 
 def test_commit_pick_aborts_on_filled_slot_and_banned_player(tmp_path, monkeypatch, mock_streamlit_state):
-    import json
     from fcdraft.draft import commit_pick
+    from fcdraft.state import read_state_doc, write_state_doc
 
     state_file = _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
-    on_disk = json.loads(state_file.read_text())
+    on_disk = read_state_doc(str(state_file))
     on_disk["drafted_players"] = {"Alice": {"ST": {"player_id": "zzz", "short_name": "Taken", "overall": 80}}}
-    state_file.write_text(json.dumps(on_disk))
+    write_state_doc(str(state_file), on_disk)
     assert commit_pick("Alice", "ST", _player()) is False
 
     on_disk["drafted_players"] = {"Alice": {}}
     on_disk["banned_player_ids"] = ["p1"]
-    state_file.write_text(json.dumps(on_disk))
+    write_state_doc(str(state_file), on_disk)
     assert commit_pick("Alice", "LW", _player()) is False
     assert mock_streamlit_state["draft_history"] == []
 
@@ -119,7 +117,7 @@ def _pick(overall_pick, participant, round_=1):
 
 def _seed_timer_state(store, tmp_path, monkeypatch, sequence, expired_deadline):
     """Draft-phase state on disk + in memory with an already-expired pick clock."""
-    state_file = tmp_path / "draft_state.json"
+    state_file = tmp_path / "draft_state.db"
     monkeypatch.setattr("fcdraft.state.STATE_FILE", str(state_file))
     store.update({
         "participants": sorted({p["participant"] for p in sequence}),
@@ -177,18 +175,18 @@ def test_second_relegation_keeps_relative_order(tmp_path, monkeypatch, mock_stre
 
 
 def test_timeout_noop_when_another_session_handled_it(tmp_path, monkeypatch, mock_streamlit_state):
-    import json
     import time
     from fcdraft.draft import apply_pick_timeout
+    from fcdraft.state import read_state_doc, write_state_doc
 
     expired = time.time() - 5
     seq = [_pick(1, "Alice"), _pick(2, "Bob")]
     state_file = _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
 
     # Another device already renewed the clock on disk.
-    on_disk = json.loads(state_file.read_text())
+    on_disk = read_state_doc(str(state_file))
     on_disk["pick_deadline"] = time.time() + 60
-    state_file.write_text(json.dumps(on_disk))
+    write_state_doc(str(state_file), on_disk)
 
     assert apply_pick_timeout(expired) is False
     order = [p["participant"] for p in mock_streamlit_state["draft_sequence"]]
@@ -239,13 +237,13 @@ def test_pick_deadline_persists_across_save_load(tmp_path, monkeypatch, mock_str
 
 def test_commit_pick_aborts_on_already_drafted_player(tmp_path, monkeypatch, mock_streamlit_state):
     """A player another participant already drafted (now visible in search) cannot be picked."""
-    import json
     from fcdraft.draft import commit_pick
+    from fcdraft.state import read_state_doc, write_state_doc
 
     state_file = _seed_commit_state(mock_streamlit_state, tmp_path, monkeypatch)
-    on_disk = json.loads(state_file.read_text())
+    on_disk = read_state_doc(str(state_file))
     on_disk["drafted_players"] = {"Bob": {"ST": {"player_id": "p1", "short_name": "P1", "overall": 90}}}
-    state_file.write_text(json.dumps(on_disk))
+    write_state_doc(str(state_file), on_disk)
 
     assert commit_pick("Alice", "ST", _player()) is False
     assert mock_streamlit_state["draft_history"] == []
@@ -281,3 +279,26 @@ def test_auto_draft_remaining(mock_streamlit_state):
     
     # Verify current pick index has advanced to the end
     assert mock_streamlit_state["current_pick_index"] == 2
+
+
+def test_autopick_lands_only_once_for_same_deadline(tmp_path, monkeypatch, mock_streamlit_state):
+    """Two sessions enforcing the same expired deadline auto-pick exactly one player."""
+    import time
+    from fcdraft.draft import apply_pick_autopick
+
+    expired = time.time() - 5
+    seq = [_pick(1, "Alice"), _pick(2, "Bob")]
+    _seed_timer_state(mock_streamlit_state, tmp_path, monkeypatch, seq, expired)
+    mock_streamlit_state["formations"] = {"Alice": "4-3-3", "Bob": "4-3-3"}
+    mock_streamlit_state["drafted_players"] = {"Alice": {}, "Bob": {}}
+    app.save_session_state()
+
+    assert apply_pick_autopick(expired) is True
+    assert mock_streamlit_state["current_pick_index"] == 1
+    assert len(mock_streamlit_state["draft_history"]) == 1
+    assert mock_streamlit_state["pick_deadline"] > time.time()  # clock renewed
+
+    # A second session observing the same (now stale) deadline must no-op.
+    assert apply_pick_autopick(expired) is False
+    assert mock_streamlit_state["current_pick_index"] == 1
+    assert len(mock_streamlit_state["draft_history"]) == 1
