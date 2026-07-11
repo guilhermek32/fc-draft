@@ -6,7 +6,10 @@ by polling the persisted state_version counter and forcing a full-app rerun
 only when another session has saved.
 """
 
+from datetime import datetime
+
 import streamlit as st
+import streamlit.components.v1 as components
 
 from fcdraft.auth import check_credential, issue_auth_token, revoke_auth_token, set_credential
 from fcdraft.config import ADMIN_LABEL, ADMIN_NAME, LIVE_SYNC_INTERVAL
@@ -18,16 +21,60 @@ from fcdraft.state import (
 )
 
 
+# If the poller heartbeat stops for this long, the browser-side watchdog
+# declares the screen frozen and tells the user to reload.
+_FREEZE_AFTER_MS = 15_000
+
+
 @st.fragment(run_every=LIVE_SYNC_INTERVAL)
 def live_sync_poller():
     """Rerun the whole app when another session has written new state.
 
-    One os.stat per poll; a missing/unreadable file (signature None) never
-    triggers a rerun, so transient failures cause no rerun storms.
+    One version SELECT per poll; a missing/unreadable DB (signature None)
+    never triggers a rerun, so transient failures cause no rerun storms.
+
+    Also shows when this session last synced, and plants a browser-side
+    watchdog: the JS keeps running even when the fragment stops rerunning
+    (dead websocket, hung server), so a frozen screen gets a visible banner
+    instead of silently showing stale state.
     """
+    _render_sync_status()
     signature = state_file_signature()
     if signature is not None and signature != st.session_state.get("state_signature"):
         st.rerun(scope="app")
+
+
+def _render_sync_status():
+    st.caption(f"🔄 Live sync · last updated {datetime.now():%H:%M:%S}")
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            const w = window.parent;
+            w.__lastSyncBeat = Date.now();
+            if (w.__syncWatchdog) return;
+            w.__syncWatchdog = setInterval(() => {{
+                const stale = Date.now() - w.__lastSyncBeat > {_FREEZE_AFTER_MS};
+                let banner = w.document.getElementById('sync-freeze-banner');
+                if (stale && !banner) {{
+                    banner = w.document.createElement('div');
+                    banner.id = 'sync-freeze-banner';
+                    banner.style.cssText =
+                        'position:fixed;top:0;left:0;right:0;z-index:999999;' +
+                        'background:#b91c1c;color:#fff;text-align:center;' +
+                        'padding:10px;font-family:sans-serif;font-size:15px;';
+                    banner.textContent =
+                        '⚠️ The screen stopped updating — reload the page to see the latest picks.';
+                    w.document.body.appendChild(banner);
+                }} else if (!stale && banner) {{
+                    banner.remove();
+                }}
+            }}, 3000);
+        }})();
+        </script>
+        """,
+        height=0,
+    )
 
 
 def get_authed_participant():
