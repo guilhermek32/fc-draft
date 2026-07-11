@@ -239,6 +239,10 @@ def refresh_shared_state(path=None):
     if not isinstance(state, dict):
         return
     st.session_state.phase = state.get("phase", st.session_state.get("phase", "setup"))
+    st.session_state.participants = state.get("participants", [])
+    st.session_state.team_names = state.get("team_names", {})
+    st.session_state.formations = state.get("formations", {})
+    st.session_state.bench_slots = state.get("bench_slots", DEFAULT_BENCH_SLOTS)
     st.session_state.bans = _rehydrate_bans(state.get("bans", {}))
     st.session_state.ban_submissions = state.get("ban_submissions", {})
     st.session_state.auth_credentials = state.get("auth_credentials", {})
@@ -251,6 +255,43 @@ def refresh_shared_state(path=None):
     st.session_state.pick_deadline = state.get("pick_deadline")
     st.session_state.last_timeout = state.get("last_timeout")
     st.session_state.state_version = state.get("state_version", 0)
+
+
+def remove_participant(name):
+    """Scrub a participant from all shared state (e.g. a ban-phase no-show).
+
+    The snake order among the remaining participants is preserved; picks are
+    renumbered so overall_pick stays gapless. Safe only before the draft
+    starts (current_pick_index is 0).
+    """
+    if name in st.session_state.participants:
+        st.session_state.participants.remove(name)
+    for key in ("team_names", "formations", "bans", "ban_submissions",
+                "drafted_players", "auth_credentials"):
+        st.session_state[key].pop(name, None)
+    st.session_state.auth_tokens = {
+        token: identity
+        for token, identity in st.session_state.auth_tokens.items()
+        if identity.get("participant") != name
+    }
+
+    new_sequence = []
+    overall_pick = 1
+    picks_in_round = {}
+    for pick in st.session_state.draft_sequence:
+        if pick["participant"] == name:
+            continue
+        picks_in_round[pick["round"]] = picks_in_round.get(pick["round"], 0) + 1
+        new_sequence.append({
+            "round": pick["round"],
+            "pick_in_round": picks_in_round[pick["round"]],
+            "overall_pick": overall_pick,
+            "participant": pick["participant"],
+        })
+        overall_pick += 1
+    st.session_state.draft_sequence = new_sequence
+
+    save_session_state()
 
 
 def init_session_state():

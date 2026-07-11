@@ -11,7 +11,7 @@ from fcdraft.gateway import (
     render_logout_button,
 )
 from fcdraft.search import format_player_options, search_players
-from fcdraft.state import save_session_state
+from fcdraft.state import remove_participant, save_session_state
 
 
 def _ranked_bans():
@@ -132,6 +132,27 @@ def _render_reveal_room():
         st.rerun()
 
 
+def _render_remove_participant_tool():
+    """Admin-only: drop a participant who hasn't submitted so the draft can start."""
+    pending = [p for p in st.session_state.participants
+               if not st.session_state.ban_submissions.get(p)]
+    if not pending:
+        return
+
+    st.write("---")
+    with st.expander("🛠️ Admin: Remove Participant"):
+        st.warning("Removes a participant who hasn't chosen their bans, so the remaining participants can proceed to the draft. This cannot be undone.")
+        if len(st.session_state.participants) <= 2:
+            st.error("A draft needs at least 2 participants — no one can be removed.")
+            return
+        name = st.selectbox("Participant awaiting bans", pending, key="remove_participant_name")
+        confirmed = st.checkbox(f"I understand {name} will be removed from the draft for good.", key=f"confirm_remove_{name}")
+        if st.button(f"🗑️ Remove {name}", use_container_width=True, type="secondary", disabled=not confirmed):
+            remove_participant(name)
+            st.success(f"{name} was removed from the draft.")
+            st.rerun()
+
+
 def render():
     # Flip waiting screens automatically when another device submits.
     live_sync_poller()
@@ -141,6 +162,8 @@ def render():
 
     with st.sidebar:
         render_account_box()
+        if st.session_state.get("is_admin"):
+            _render_remove_participant_tool()
 
     _render_generated_passwords_panel()
 
