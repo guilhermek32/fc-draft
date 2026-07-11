@@ -2,6 +2,8 @@
 
 import streamlit as st
 
+from fcdraft.config import BANS_PER_PARTICIPANT
+from fcdraft.data import load_data
 from fcdraft.draft import reset_pick_deadline
 from fcdraft.gateway import (
     get_authed_participant,
@@ -93,7 +95,35 @@ def _render_ban_picker(picker):
             st.rerun()
 
     st.write(" ")
+    _render_random_ban_picker(picker)
+
+    st.write(" ")
     render_logout_button(picker)
+
+
+def _render_random_ban_picker(picker):
+    """Roll 3 random 80+ OVR players and lock them in as this participant's bans."""
+    proposal_key = f"random_bans_{picker}"
+    with st.expander("🎲 Feeling lucky? Random Bans (80+ OVR)"):
+        st.write(f"Roll {BANS_PER_PARTICIPANT} random players rated above **80** and lock them in as your bans.")
+        if st.button("🎲 Roll Random Players", use_container_width=True, key=f"roll_bans_{picker}"):
+            pool = load_data()
+            pool = pool[pool["overall"] > 80]
+            st.session_state[proposal_key] = [
+                row.to_dict() for _, row in pool.sample(n=BANS_PER_PARTICIPANT).iterrows()
+            ]
+
+        proposal = st.session_state.get(proposal_key)
+        if proposal:
+            for i, p in enumerate(proposal, 1):
+                st.markdown(f"{i}. **{p['short_name']}** ({p['overall']} OVR) — {p['club_name']}")
+            st.caption("Roll again to re-draw, or lock these in. Locked bans are final.")
+            if st.button("🔒 Lock in These Random Bans", use_container_width=True, type="primary", key=f"lock_random_bans_{picker}"):
+                st.session_state.bans[picker] = proposal
+                st.session_state.ban_submissions[picker] = True
+                del st.session_state[proposal_key]
+                save_session_state()
+                st.rerun()
 
 
 def _render_locked_view(picker):
