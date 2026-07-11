@@ -16,7 +16,13 @@ from fcdraft.gateway import (
 )
 from fcdraft.phases.ban import _ranked_bans
 from fcdraft.pitch import display_pitch_component
-from fcdraft.search import format_player_options, get_ban_counts, search_players
+from fcdraft.search import (
+    allowed_positions,
+    first_draftable_index,
+    format_player_options,
+    get_ban_counts,
+    search_players,
+)
 from fcdraft.cards import render_preview_card
 from fcdraft.state import save_session_state
 
@@ -173,6 +179,25 @@ def _render_stat_grid(p_dict):
         """, unsafe_allow_html=True)
 
 
+# Sentinel option in the slot selectbox: browse the whole pool ("Todos").
+_ALL_SLOTS = "__ALL__"
+_ALL_PAGE_SIZE = 100
+
+
+def _compatible_empty_slot(player, empty_slots):
+    """First empty slot the player can fill (field slots first; SUB takes anyone)."""
+    pos_set = set(player.get("pos_list") or [])
+    fallback_sub = None
+    for slot in empty_slots:
+        base = get_base_position(slot)
+        if base == "SUB":
+            fallback_sub = fallback_sub or slot
+            continue
+        if pos_set & set(allowed_positions(base, "Flexible")):
+            return slot
+    return fallback_sub
+
+
 def _render_draft_room(curr_idx, seq, picker):
     col_select, col_preview = st.columns([5, 3])
 
@@ -191,20 +216,47 @@ def _render_draft_room(curr_idx, seq, picker):
             save_session_state()
             st.rerun()
 
-        selected_slot = st.selectbox("Escolha a Posição Livre", empty_slots, format_func=slot_label_pt, key=f"sel_slot_{curr_idx}")
-        base_pos = get_base_position(selected_slot)
+        selected_slot = st.selectbox(
+            "Escolha a Posição Livre",
+            [_ALL_SLOTS] + empty_slots,
+            index=1,
+            format_func=lambda s: "Todos" if s == _ALL_SLOTS else slot_label_pt(s),
+            key=f"sel_slot_{curr_idx}",
+        )
+        browse_all = selected_slot == _ALL_SLOTS
+        base_pos = None if browse_all else get_base_position(selected_slot)
 
-        st.write(f"2. Search and select a player. Pool automatically filtered to position: **{position_label_pt(base_pos)}**")
+        if browse_all:
+            st.write("2. Search and select a player from the **whole pool** (best overall first).")
+        else:
+            st.write(f"2. Search and select a player. Pool automatically filtered to position: **{position_label_pt(base_pos)}**")
         search_query = st.text_input("🔍 Search by Player Name / Club / Nation", value="", placeholder="Type here...", key=f"query_{curr_idx}")
         df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode="Flexible")
+
+        load_more_option = None
+        if browse_all:
+            limit_key = f"all_limit_{curr_idx}"
+            limit = st.session_state.get(limit_key, _ALL_PAGE_SIZE)
+            if len(df_pool) > limit:
+                load_more_option = f"⬇️ Carregar mais… (mostrando {limit} de {len(df_pool)})"
+            df_pool = df_pool.head(limit)
         options = format_player_options(df_pool)
+        if load_more_option:
+            options = options + [load_more_option]
 
         p_dict = None
         if not options:
             st.warning("No players found matching your criteria. Try adjusting your search query.")
         else:
-            selected_player_str = st.selectbox("Choose Player to Draft", options, key=f"choose_player_{curr_idx}")
-            if selected_player_str:
+            selected_player_str = st.selectbox(
+                "Choose Player to Draft", options,
+                index=first_draftable_index(df_pool),
+                key=f"choose_player_{curr_idx}",
+            )
+            if load_more_option and selected_player_str == load_more_option:
+                st.session_state[limit_key] = limit + _ALL_PAGE_SIZE
+                st.rerun()
+            elif selected_player_str:
                 idx = options.index(selected_player_str)
                 p_dict = df_pool.iloc[idx].to_dict()
 
@@ -216,15 +268,19 @@ def _render_draft_room(curr_idx, seq, picker):
         elif p_dict and p_dict.get("picked_by"):
             st.error(f"🔒 {p_dict['short_name']} was already drafted by **{p_dict['picked_by']}**.")
         elif p_dict:
-            if st.button(f"✅ Draft {p_dict['short_name']} for {slot_label_pt(selected_slot)}", type="primary", use_container_width=True):
-                if commit_pick(picker, selected_slot, p_dict):
+            target_slot = _compatible_empty_slot(p_dict, empty_slots) if browse_all else selected_slot
+            if target_slot is None:
+                st.error(f"🚫 Nenhuma posição livre compatível com {p_dict['short_name']}.")
+            elif st.button(f"✅ Draft {p_dict['short_name']} for {slot_label_pt(target_slot)}", type="primary", use_container_width=True):
+                if commit_pick(picker, target_slot, p_dict):
                     st.rerun()
 
     with col_preview:
         if p_dict:
+            preview_pos = (p_dict.get("pos_list") or ["SUB"])[0] if browse_all else base_pos
             st.markdown("### 📋 Player Profile")
             st.markdown(render_preview_card(
-                p_dict, position_label_pt(base_pos), width=140, height=210, padding=12,
+                p_dict, position_label_pt(preview_pos), width=140, height=210, padding=12,
                 rating_size=13, pos_size=14, face_size=90, name_size=14, club_size=10,
                 rating_padding="2px 6px", margin_bottom="15px",
                 banned=bool(p_dict.get("is_banned") or p_dict.get("picked_by")),

@@ -5,7 +5,7 @@ import streamlit as st
 from fcdraft.cards import render_preview_card
 from fcdraft.draft import commit_pick
 from fcdraft.formations import get_base_position, position_label_pt, slot_label_pt
-from fcdraft.search import format_player_options, get_ban_counts, search_players
+from fcdraft.search import first_draftable_index, format_player_options, get_ban_counts, search_players
 
 
 @st.dialog("🎯 Draft Player Slot")
@@ -30,7 +30,11 @@ def draft_player_dialog(slot, picker):
     if not options:
         st.warning("No players found. Try adjusting search.")
     else:
-        selected_player_str = st.selectbox("Choose Player to Draft", options, key="dialog_choose_player")
+        selected_player_str = st.selectbox(
+            "Choose Player to Draft", options,
+            index=first_draftable_index(df_pool),
+            key="dialog_choose_player",
+        )
         if selected_player_str:
             idx = options.index(selected_player_str)
             p_dict = df_pool.iloc[idx].to_dict()

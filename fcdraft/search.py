@@ -93,6 +93,21 @@ def search_players(query="", position_filter=None, filter_mode="Strict"):
     )
 
 
+def first_draftable_index(df):
+    """Position of the first row that is neither banned nor already picked (else 0).
+
+    Used as the selectbox default so a flagged player is never auto-selected
+    when the turn changes.
+    """
+    if df.empty:
+        return 0
+    blocked = df["is_banned"].to_numpy() | (df["picked_by"].to_numpy() != "")
+    for pos, is_blocked in enumerate(blocked):
+        if not is_blocked:
+            return pos
+    return 0
+
+
 def format_player_options(df):
     """Selectbox labels for a search-result frame, preserving row order."""
     has_banned = "is_banned" in df.columns
