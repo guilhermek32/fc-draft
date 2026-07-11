@@ -5,7 +5,7 @@ import time
 import streamlit as st
 
 from fcdraft.config import ADMIN_LABEL, PICK_TIMER_SECONDS
-from fcdraft.draft import apply_pick_timeout, auto_draft_remaining, commit_pick, reset_pick_deadline
+from fcdraft.draft import apply_pick_autopick, auto_draft_remaining, commit_pick, reset_pick_deadline
 from fcdraft.formations import build_slot_list, get_base_position
 from fcdraft.gateway import (
     get_authed_participant,
@@ -23,9 +23,9 @@ from fcdraft.state import save_session_state
 
 @st.fragment(run_every="1s")
 def _pick_timer_fragment():
-    """Countdown for the current pick; relegates the on-clock picker on expiry.
+    """Countdown for the current pick; auto-picks for the on-clock picker on expiry.
 
-    Any open session may trigger the timeout — apply_pick_timeout() re-checks
+    Any open session may trigger the timeout — apply_pick_autopick() re-checks
     the freshest shared state so concurrent enforcement lands only once.
     """
     deadline = st.session_state.get("pick_deadline")
@@ -34,7 +34,7 @@ def _pick_timer_fragment():
 
     remaining = deadline - time.time()
     if remaining <= 0:
-        apply_pick_timeout(deadline)
+        apply_pick_autopick(deadline)
         st.rerun(scope="app")
 
     color = "#ff4b4b" if remaining < 15 else "#ffd700"
@@ -49,7 +49,15 @@ def _pick_timer_fragment():
 
 def _render_timeout_notice():
     last = st.session_state.get("last_timeout")
-    if last:
+    if not last:
+        return
+    if last.get("player_name"):
+        st.warning(
+            f"⏱️ **{last['participant']}** ran out of time on pick {last['at_pick']} — "
+            f"**{last['player_name']}** was auto-picked for **{last['slot']}**."
+        )
+    else:
+        # Legacy relegation notice persisted by an older version.
         st.warning(
             f"⏱️ **{last['participant']}** ran out of time on pick {last['at_pick']} — "
             "all of their remaining picks were moved to the end of the draft."

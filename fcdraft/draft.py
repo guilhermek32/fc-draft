@@ -55,6 +55,84 @@ def apply_pick_timeout(expired_deadline):
     return True
 
 
+def best_available_pick(picker, df, all_excluded, filter_mode="Flexible"):
+    """(slot, player) for the picker's first empty slot, or None if full/exhausted."""
+    all_slots = build_slot_list(
+        st.session_state.formations[picker], st.session_state.bench_slots
+    )
+    squad = st.session_state.drafted_players.setdefault(picker, {})
+    empty_slots = [slot for slot in all_slots if slot not in squad]
+    if not empty_slots:
+        return None
+
+    selected_slot = empty_slots[0]
+    base_pos = get_base_position(selected_slot)
+
+    candidates = df
+    if all_excluded:
+        candidates = candidates[~candidates["player_id"].isin(all_excluded)]
+
+    if base_pos and base_pos != "SUB":
+        allowed = frozenset(allowed_positions(base_pos, filter_mode))
+        positional = candidates[
+            candidates["pos_set"].map(lambda positions: not allowed.isdisjoint(positions))
+        ]
+        # Fallback to no positional filter if no matching player remains (very rare)
+        if not positional.empty:
+            candidates = positional
+
+    if candidates.empty:
+        return None
+    return selected_slot, candidates.iloc[0].to_dict()
+
+
+def apply_pick_autopick(expired_deadline):
+    """Auto-draft the best available player for the on-clock participant on expiry.
+
+    The picker's first empty slot gets the highest-overall available player, so
+    missing the clock never costs the pick and the draft keeps its normal
+    order. Any open session may call this when it observes an expired deadline;
+    the freshest shared state is re-checked first so that concurrent
+    enforcement from several devices lands only once.
+    """
+    refresh_shared_state()
+    curr_idx = st.session_state.current_pick_index
+    seq = st.session_state.draft_sequence
+
+    if curr_idx >= len(seq):
+        return False
+    deadline = st.session_state.pick_deadline
+    # Another session already handled this expiry (deadline renewed) or the
+    # pick landed in time; also covers deadlines still in the future.
+    if deadline is None or deadline != expired_deadline or time.time() < deadline:
+        return False
+
+    picker = seq[curr_idx]["participant"]
+    best = best_available_pick(picker, load_data(), get_excluded_ids())
+    squad_full = not [
+        slot
+        for slot in build_slot_list(st.session_state.formations[picker], st.session_state.bench_slots)
+        if slot not in st.session_state.drafted_players.get(picker, {})
+    ]
+    if best is None and not squad_full:
+        # Player pool exhausted (extreme edge): fall back to relegation.
+        return apply_pick_timeout(expired_deadline)
+
+    if best is not None:
+        selected_slot, player = best
+        record_pick(picker, selected_slot, player, curr_idx + 1, seq[curr_idx]["round"])
+        st.session_state.last_timeout = {
+            "participant": picker,
+            "at_pick": curr_idx + 1,
+            "player_name": player["short_name"],
+            "slot": selected_slot,
+        }
+    st.session_state.current_pick_index = curr_idx + 1
+    reset_pick_deadline()
+    save_session_state()
+    return True
+
+
 def commit_pick(picker, slot, player):
     """Validate against the freshest shared state, then record and save a pick.
 
@@ -116,34 +194,12 @@ def auto_draft_remaining(filter_mode="Flexible"):
         pick = seq[idx]
         picker = pick["participant"]
 
-        all_slots = build_slot_list(
-            st.session_state.formations[picker], st.session_state.bench_slots
-        )
-        squad = st.session_state.drafted_players.setdefault(picker, {})
-        empty_slots = [slot for slot in all_slots if slot not in squad]
-        if not empty_slots:
+        best = best_available_pick(picker, df, all_excluded, filter_mode)
+        if best is None:
             continue
-
-        selected_slot = empty_slots[0]
-        base_pos = get_base_position(selected_slot)
-
-        candidates = df
-        if all_excluded:
-            candidates = candidates[~candidates["player_id"].isin(all_excluded)]
-
-        if base_pos and base_pos != "SUB":
-            allowed = frozenset(allowed_positions(base_pos, filter_mode))
-            positional = candidates[
-                candidates["pos_set"].map(lambda positions: not allowed.isdisjoint(positions))
-            ]
-            # Fallback to no positional filter if no matching player remains (very rare)
-            if not positional.empty:
-                candidates = positional
-
-        if not candidates.empty:
-            best_player = candidates.iloc[0].to_dict()
-            record_pick(picker, selected_slot, best_player, idx + 1, pick["round"])
-            all_excluded.add(best_player["player_id"])
+        selected_slot, best_player = best
+        record_pick(picker, selected_slot, best_player, idx + 1, pick["round"])
+        all_excluded.add(best_player["player_id"])
 
     st.session_state.current_pick_index = len(seq)
     st.session_state.pick_deadline = None
