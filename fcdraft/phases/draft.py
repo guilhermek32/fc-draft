@@ -57,7 +57,7 @@ def _render_timeout_notice():
 
 
 def _render_sidebar(curr_idx, seq):
-    """Account box, draft status, settings, undo, and admin tools. Returns the filter mode."""
+    """Account box, draft status, undo, and admin tools."""
     render_account_box()
     st.write("---")
 
@@ -93,10 +93,6 @@ def _render_sidebar(curr_idx, seq):
         """, unsafe_allow_html=True)
 
     st.write("---")
-    st.subheader("⚙️ Draft Settings")
-    filter_mode = st.selectbox("Position Match Mode", ["Strict", "Flexible"], index=1, key="filter_mode",
-                               help="Strict: Player must have exact position. Flexible: Allows adjacent positions (e.g. LWB in LB slot).")
-
     is_admin = st.session_state.get("is_admin", False)
     if is_admin and curr_idx > 0:
         st.write(" ")
@@ -123,7 +119,7 @@ def _render_sidebar(curr_idx, seq):
             auto_run_confirm = st.text_input("Type 'auto run' to confirm:", value="", key="auto_run_confirm_input").strip().lower()
             if auto_run_confirm == "auto run":
                 if st.button("🚀 Execute Auto-Draft", type="primary", use_container_width=True):
-                    auto_draft_remaining(filter_mode)
+                    auto_draft_remaining()
                     st.success("Auto-draft complete!")
                     save_session_state()
                     st.rerun()
@@ -136,8 +132,6 @@ def _render_sidebar(curr_idx, seq):
                 st.write(f"{rk}. **{b['short_name']}** ({b['overall']} OVR){count} — Banned by *{b['banned_by']}*")
         else:
             st.write("No bans submitted.")
-
-    return filter_mode
 
 
 def _render_stat_grid(p_dict):
@@ -171,7 +165,7 @@ def _render_stat_grid(p_dict):
         """, unsafe_allow_html=True)
 
 
-def _render_draft_room(curr_idx, seq, picker, filter_mode):
+def _render_draft_room(curr_idx, seq, picker):
     col_select, col_preview = st.columns([5, 3])
 
     with col_select:
@@ -192,9 +186,9 @@ def _render_draft_room(curr_idx, seq, picker, filter_mode):
         selected_slot = st.selectbox("Select Empty Slot", empty_slots, key=f"sel_slot_{curr_idx}")
         base_pos = get_base_position(selected_slot)
 
-        st.write(f"2. Search and select a player. Pool automatically filtered to position: **{base_pos}** ({filter_mode} Mode)")
+        st.write(f"2. Search and select a player. Pool automatically filtered to position: **{base_pos}**")
         search_query = st.text_input("🔍 Search by Player Name / Club / Nation", value="", placeholder="Type here...", key=f"query_{curr_idx}")
-        df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode=filter_mode)
+        df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode="Flexible")
         options = format_player_options(df_pool)
 
         p_dict = None
@@ -310,7 +304,7 @@ def render():
     seq = st.session_state.draft_sequence
 
     with st.sidebar:
-        filter_mode = _render_sidebar(curr_idx, seq)
+        _render_sidebar(curr_idx, seq)
 
     st.title("🏟️ Snake Draft Board")
 
@@ -329,7 +323,7 @@ def render():
         tab_draft, tab_board, tab_pitch = st.tabs(["🎯 Draft Room", "📊 Draft Board", "⚽ Squad Pitch Visualizer"])
         with tab_draft:
             if is_my_turn:
-                _render_draft_room(curr_idx, seq, on_clock, filter_mode)
+                _render_draft_room(curr_idx, seq, on_clock)
                 render_logout_button(viewer)
             else:
                 _render_waiting_room(viewer, curr_idx, seq, on_clock)

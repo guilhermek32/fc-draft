@@ -20,11 +20,10 @@ def draft_player_dialog(slot, picker):
     st.markdown(f"### Draft Player for: **{slot}**")
 
     base_pos = get_base_position(slot)
-    filter_mode = st.session_state.get("filter_mode", "Flexible")
-    st.write(f"Position Filter: **{base_pos}** ({filter_mode} Mode)")
+    st.write(f"Position Filter: **{base_pos}**")
 
     search_query = st.text_input("🔍 Search by Name / Club / Nation", value="", key="dialog_search_input")
-    df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode=filter_mode)
+    df_pool = search_players(query=search_query, position_filter=base_pos, filter_mode="Flexible")
     options = format_player_options(df_pool)
 
     p_dict = None
