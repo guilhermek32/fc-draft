@@ -13,6 +13,7 @@ import streamlit as st
 
 from fcdraft.config import DEFAULT_BENCH_SLOTS, STATE_FILE
 from fcdraft.data import get_player_by_id
+from fcdraft.formations import build_snake_sequence
 
 _SESSION_DEFAULTS = {
     "phase": "setup",
@@ -39,6 +40,9 @@ _SESSION_DEFAULTS = {
     "draft_sequence": [],
     "current_pick_index": 0,
     "draft_history": [],
+    # Participants removed during the ban phase ({name: stashed data}), kept so
+    # an admin can restore them.
+    "removed_participants": {},
     # Absolute unix-epoch deadline for the current pick (None = no timer running).
     "pick_deadline": None,
     # Last pick-timer expiry ({"participant", "at_pick"}); shown as a notice on all devices.
@@ -164,6 +168,7 @@ def save_session_state(path=None):
         "draft_sequence": st.session_state.get("draft_sequence", []),
         "current_pick_index": st.session_state.get("current_pick_index", 0),
         "draft_history": st.session_state.get("draft_history", []),
+        "removed_participants": st.session_state.get("removed_participants", {}),
         "pick_deadline": st.session_state.get("pick_deadline"),
         "last_timeout": st.session_state.get("last_timeout"),
     }
@@ -212,6 +217,7 @@ def load_session_state(path=None):
         st.session_state.draft_sequence = state.get("draft_sequence", [])
         st.session_state.current_pick_index = state.get("current_pick_index", 0)
         st.session_state.draft_history = state.get("draft_history", [])
+        st.session_state.removed_participants = state.get("removed_participants", {})
         st.session_state.pick_deadline = state.get("pick_deadline")
         st.session_state.last_timeout = state.get("last_timeout")
         st.session_state.state_version = state.get("state_version", 0)
@@ -252,6 +258,7 @@ def refresh_shared_state(path=None):
     st.session_state.draft_sequence = state.get("draft_sequence", [])
     st.session_state.current_pick_index = state.get("current_pick_index", 0)
     st.session_state.draft_history = state.get("draft_history", [])
+    st.session_state.removed_participants = state.get("removed_participants", {})
     st.session_state.pick_deadline = state.get("pick_deadline")
     st.session_state.last_timeout = state.get("last_timeout")
     st.session_state.state_version = state.get("state_version", 0)
@@ -262,8 +269,16 @@ def remove_participant(name):
 
     The snake order among the remaining participants is preserved; picks are
     renumbered so overall_pick stays gapless. Safe only before the draft
-    starts (current_pick_index is 0).
+    starts (current_pick_index is 0). The participant's data is stashed in
+    removed_participants so restore_participant() can bring them back.
     """
+    base_order = _base_pick_order()
+    st.session_state.removed_participants[name] = {
+        "team_name": st.session_state.team_names.get(name, f"{name} FC"),
+        "formation": st.session_state.formations.get(name),
+        "credential": st.session_state.auth_credentials.get(name),
+        "base_index": base_order.index(name) if name in base_order else len(base_order),
+    }
     if name in st.session_state.participants:
         st.session_state.participants.remove(name)
     for key in ("team_names", "formations", "bans", "ban_submissions",
@@ -290,6 +305,45 @@ def remove_participant(name):
         })
         overall_pick += 1
     st.session_state.draft_sequence = new_sequence
+
+    save_session_state()
+
+
+def _base_pick_order():
+    """Round-1 pick order of the current draft sequence (the snake base order)."""
+    return [
+        pick["participant"]
+        for pick in st.session_state.draft_sequence
+        if pick["round"] == 1
+    ]
+
+
+def restore_participant(name):
+    """Bring back a participant removed during the ban phase.
+
+    Reinstates their team, formation, and login, with bans unsubmitted so they
+    go through the ban phase again. Their picks rejoin the snake sequence at
+    the original position where possible. Safe only before the draft starts.
+    """
+    stash = st.session_state.removed_participants.pop(name, None)
+    if stash is None:
+        return
+
+    st.session_state.participants.append(name)
+    st.session_state.team_names[name] = stash["team_name"]
+    if stash["formation"] is not None:
+        st.session_state.formations[name] = stash["formation"]
+    if stash["credential"] is not None:
+        st.session_state.auth_credentials[name] = stash["credential"]
+    st.session_state.bans[name] = []
+    st.session_state.ban_submissions[name] = False
+    st.session_state.drafted_players[name] = {}
+
+    base_order = _base_pick_order() or [p for p in st.session_state.participants if p != name]
+    base_order.insert(min(stash["base_index"], len(base_order)), name)
+    st.session_state.draft_sequence = build_snake_sequence(
+        base_order, st.session_state.bench_slots
+    )
 
     save_session_state()
 

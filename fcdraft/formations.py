@@ -27,3 +27,23 @@ def get_base_position(slot_name):
 def build_slot_list(formation, bench_slots):
     """Starting-XI slot names for a formation plus numbered SUB slots."""
     return get_formation_slots(formation) + [f"SUB {x}" for x in range(1, bench_slots + 1)]
+
+
+def build_snake_sequence(ordered_names, bench_slots):
+    """Snake-order pick sequence over 11 + bench rounds for an already-ordered list."""
+    total_rounds = 11 + bench_slots
+    draft_sequence = []
+    overall_pick = 1
+    for r in range(1, total_rounds + 1):
+        round_order = list(ordered_names)
+        if r % 2 == 0:
+            round_order.reverse()
+        for pick_in_round, picker in enumerate(round_order):
+            draft_sequence.append({
+                "round": r,
+                "pick_in_round": pick_in_round + 1,
+                "overall_pick": overall_pick,
+                "participant": picker,
+            })
+            overall_pick += 1
+    return draft_sequence

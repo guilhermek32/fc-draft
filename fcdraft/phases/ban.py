@@ -13,7 +13,7 @@ from fcdraft.gateway import (
     render_logout_button,
 )
 from fcdraft.search import format_player_options, search_players
-from fcdraft.state import remove_participant, save_session_state
+from fcdraft.state import remove_participant, restore_participant, save_session_state
 
 
 def _ranked_bans():
@@ -183,6 +183,22 @@ def _render_remove_participant_tool():
             st.rerun()
 
 
+def _render_restore_participant_tool():
+    """Admin-only: bring back a participant removed during the ban phase."""
+    removed = list(st.session_state.removed_participants)
+    if not removed:
+        return
+
+    st.write("---")
+    with st.expander("♻️ Admin: Restore Participant"):
+        st.write("Re-adds a removed participant with their team, formation, and login. They must submit their bans before the draft can start.")
+        name = st.selectbox("Removed participant", removed, key="restore_participant_name")
+        if st.button(f"♻️ Restore {name}", use_container_width=True, type="secondary"):
+            restore_participant(name)
+            st.success(f"{name} is back in the draft.")
+            st.rerun()
+
+
 def render():
     # Flip waiting screens automatically when another device submits.
     live_sync_poller()
@@ -194,6 +210,7 @@ def render():
         render_account_box()
         if st.session_state.get("is_admin"):
             _render_remove_participant_tool()
+            _render_restore_participant_tool()
 
     _render_generated_passwords_panel()
 

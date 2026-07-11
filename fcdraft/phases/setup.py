@@ -8,6 +8,7 @@ import streamlit as st
 from fcdraft.auth import generate_password, set_credential
 from fcdraft.config import ADMIN_LABEL, ADMIN_NAME, FORMATIONS, NOTFOUND_IMG_URL
 from fcdraft.data import load_data
+from fcdraft.formations import build_snake_sequence
 from fcdraft.state import save_session_state
 
 _REQUIRED_IMPORT_COLS = {"Participant", "Formation", "Slot", "Player Name"}
@@ -86,26 +87,10 @@ def _import_previous_draft(imported_df):
 
 
 def _build_draft_sequence(participant_names, bench_slots):
-    """Snake-order pick sequence over 11 + bench rounds."""
-    total_rounds = 11 + bench_slots
+    """Snake-order pick sequence over 11 + bench rounds, in a random base order."""
     randomized_participants = participant_names.copy()
     random.shuffle(randomized_participants)
-
-    draft_sequence = []
-    overall_pick = 1
-    for r in range(1, total_rounds + 1):
-        round_order = randomized_participants.copy()
-        if r % 2 == 0:
-            round_order.reverse()
-        for pick_in_round, picker in enumerate(round_order):
-            draft_sequence.append({
-                "round": r,
-                "pick_in_round": pick_in_round + 1,
-                "overall_pick": overall_pick,
-                "participant": picker,
-            })
-            overall_pick += 1
-    return draft_sequence
+    return build_snake_sequence(randomized_participants, bench_slots)
 
 
 def render():
@@ -230,6 +215,7 @@ def render():
                 st.session_state.draft_sequence = _build_draft_sequence(participant_names, bench_slots)
                 st.session_state.current_pick_index = 0
                 st.session_state.banned_player_ids = set()
+                st.session_state.removed_participants = {}
                 st.session_state.phase = "ban"
                 save_session_state()
                 st.rerun()
