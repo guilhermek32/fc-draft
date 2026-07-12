@@ -193,7 +193,11 @@ def record_pick(picker, slot, player, pick_overall, round_number):
 
 
 def auto_draft_remaining(filter_mode="Flexible"):
-    """Fill every remaining pick with the best available (position-matching) player."""
+    """Fill every remaining pick with the best available (position-matching) player.
+
+    Mutates session state only — the caller must hold shared_state_lock() and
+    persist with save_session_state() afterwards.
+    """
     curr_idx = st.session_state.current_pick_index
     seq = st.session_state.draft_sequence
 

@@ -20,12 +20,17 @@ from fcdraft.config import (
 
 _USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
+# Player faces are small PNGs; anything bigger is not a face image.
+MAX_IMAGE_BYTES = 2 * 1024 * 1024
+
 
 def _download_image(url, dest_path):
     """Download url to dest_path; only keep payloads that are actual images."""
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     with urllib.request.urlopen(req, timeout=DOWNLOAD_TIMEOUT) as response:
-        data = response.read()
+        data = response.read(MAX_IMAGE_BYTES + 1)
+    if len(data) > MAX_IMAGE_BYTES:
+        raise ValueError(f"image exceeds {MAX_IMAGE_BYTES} bytes: {url}")
     Image.open(io.BytesIO(data)).verify()  # raises if not a valid image
     with open(dest_path, "wb") as f:
         f.write(data)

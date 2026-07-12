@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badge_github_white.svg)](https://share.streamlit.io)
 [![CI Status](https://github.com/guilhermek32/fc-draft/actions/workflows/ci.yml/badge.svg)](https://github.com/guilhermek32/fc-draft/actions)
-[![Python 3.11+](https://img.shields.www.com/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 
 A premium, interactive web application built with **Streamlit** and **Pandas** to run an EA FC 26 player draft among a group of friends. The app uses real EA FC 26 database stats, offers blind banning, manages randomized snake drafting order, displays a clickable tactical football pitch view, and persists state across page reloads.
 
@@ -34,7 +34,6 @@ A premium, interactive web application built with **Streamlit** and **Pandas** t
 * Saves all draft configurations, draft history logs, and squad selections in a local SQLite database (`draft_state.db`, WAL mode) during state-mutating actions (picking, resetting, and banning).
 * Every write is a single ACID transaction with a database-enforced version check (compare-and-swap), so concurrent sessions — even multiple devices drafting at once — can never overwrite each other's picks.
 * Each browser session polls the state version every 2 seconds, so picks, bans, and timer events made on one device appear on all others automatically.
-* A `draft_state.json` from older versions of the app is imported into the database on first load and renamed to `.imported`.
 * Automatically reloads active states at startup, protecting your progress from browser refreshes or server restarts.
 * A 90-second pick clock with auto-pick: if the timer expires, the best available matching player is drafted automatically and exactly once.
 

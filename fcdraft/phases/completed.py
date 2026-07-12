@@ -10,6 +10,12 @@ from fcdraft.pitch import display_pitch_component
 from fcdraft.state import reset_session_state
 
 
+@st.cache_data(show_spinner=False)
+def _build_exports_cached(state_version):
+    """Cached exports; any squad change bumps state_version and invalidates."""
+    return _build_exports()
+
+
 def _build_exports():
     """Roster rows (for CSV) and the plain-text summary for every participant."""
     roster_rows = []
@@ -52,7 +58,7 @@ def render():
     st.title("🏆 Draft Complete! Final Squads")
     st.write("Congratulations! All participants have built their squads. View squads, analyze stats, or export rosters below.")
 
-    df_rosters, text_summary = _build_exports()
+    df_rosters, text_summary = _build_exports_cached(st.session_state.get("state_version", 0))
 
     with st.container(border=True):
         st.subheader("💾 Export Roster Options", anchor=False)

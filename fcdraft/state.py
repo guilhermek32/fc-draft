@@ -4,6 +4,13 @@ On disk, drafted players are stored as player_id references and rehydrated from
 the player database on load; players that don't exist in the database (e.g.
 reconstructed from an imported roster CSV) are stored as full dicts. In
 st.session_state the squads always hold full player dicts.
+
+Concurrency model: all browser sessions are threads of one Streamlit process,
+so _STATE_LOCK serializes every refresh → mutate → save in-process; the DB's
+compare-and-swap on the version column is the backstop against writers this
+lock can't see (a second process pointed at the same DB). Mutating writes pass
+expected_version so a stale save fails instead of clobbering; only the setup
+phase writes unconditionally (it wholesale-replaces the state by design).
 """
 
 import json
@@ -11,14 +18,15 @@ import os
 import sqlite3
 import threading
 from contextlib import contextmanager
+from pathlib import Path
 
 import streamlit as st
 
-from fcdraft.config import DEFAULT_BENCH_SLOTS, LEGACY_STATE_JSON, STATE_FILE
+from fcdraft.config import DEFAULT_BENCH_SLOTS, STATE_FILE
 from fcdraft.data import get_player_by_id
 from fcdraft.formations import build_snake_sequence
 
-# Serializes every read-modify-write of the shared state file. All browser
+# Serializes every read-modify-write of the shared state DB. All browser
 # sessions are threads of the single Streamlit process, so one module-level
 # lock covers them all. Reentrant because enforcement paths nest (e.g.
 # apply_pick_autopick falls back into apply_pick_timeout).
@@ -28,7 +36,7 @@ _STATE_LOCK = threading.RLock()
 @contextmanager
 def shared_state_lock():
     """Hold this around refresh → validate → mutate → save so no other session
-    can write the state file between the read and the write."""
+    can write the state DB between the read and the write."""
     with _STATE_LOCK:
         yield
 
@@ -169,12 +177,22 @@ def _connect(path):
     return conn
 
 
+def _connect_ro(path):
+    """Read-only connection for the poller/refresh hot path.
+
+    Skips the WAL/synchronous PRAGMAs — journal mode is a persistent property
+    of the DB set by the write path, and re-issuing it on every 2s poll from
+    every session is pure connection churn.
+    """
+    return sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True, timeout=5)
+
+
 def _read_version(path):
     """The stored version, or None (missing DB / no row / unreadable DB)."""
     if not os.path.exists(path):
         return None
     try:
-        conn = _connect(path)
+        conn = _connect_ro(path)
         try:
             row = conn.execute("SELECT version FROM draft_state WHERE id = 1").fetchone()
         finally:
@@ -192,7 +210,7 @@ def _read_doc(path):
     """
     if not os.path.exists(path):
         return None
-    conn = _connect(path)
+    conn = _connect_ro(path)
     try:
         try:
             row = conn.execute("SELECT version, payload FROM draft_state WHERE id = 1").fetchone()
@@ -244,9 +262,9 @@ def read_state_doc(path=None):
 def write_state_doc(path, doc, version=None):
     """Store doc as the single state row, overwriting whatever is there.
 
-    Used by tests (and the legacy-JSON import) to simulate another device
-    writing. version defaults to the doc's state_version key, else current+1
-    so a plain write always looks like a remote change. Returns the version.
+    Used by tests to simulate another device writing. version defaults to the
+    doc's state_version key, else current+1 so a plain write always looks
+    like a remote change. Returns the version.
     """
     doc = dict(doc)
     doc_version = doc.pop("state_version", None)
@@ -269,7 +287,7 @@ def write_state_doc(path, doc, version=None):
     return version
 
 
-def state_file_signature(path=None):
+def state_signature(path=None):
     """Cheap change marker for the shared state: the DB version, or None.
 
     One indexed single-row SELECT — used by the live-sync poller and the
@@ -280,6 +298,8 @@ def state_file_signature(path=None):
 
 def peek_state_version(path=None):
     """The version currently in the DB, without touching session state.
+
+    Used by tests to observe version bumps without a full load.
 
     On a missing DB or read error, returns the in-memory version so a
     transient failure never looks like a remote change (no rerun storms).
@@ -319,51 +339,52 @@ def save_session_state(path=None, expected_version=None):
         return True
 
 
+# Single source of truth for every key shared across sessions through the DB:
+# (key, default, to_doc, from_doc). to_doc/from_doc of None mean the value is
+# stored as-is. _build_state_doc, load_session_state, and refresh_shared_state
+# are all driven from this table — add new shared keys here, nowhere else.
+_SHARED_KEYS = (
+    ("phase", "setup", None, None),
+    ("participants", [], None, None),
+    ("team_names", {}, None, None),
+    ("formations", {}, None, None),
+    ("bench_slots", DEFAULT_BENCH_SLOTS, None, None),
+    ("bans", {}, _slim_bans, _rehydrate_bans),
+    ("ban_submissions", {}, None, None),
+    ("auth_credentials", {}, None, None),
+    ("auth_tokens", {}, None, None),
+    ("banned_player_ids", [], lambda v: sorted(v or (), key=str), normalize_banned_ids),
+    ("drafted_players", {}, _slim_squads, _rehydrate_squads),
+    ("draft_sequence", [], None, None),
+    ("current_pick_index", 0, None, None),
+    ("draft_history", [], None, None),
+    ("removed_participants", {}, None, None),
+    ("pick_deadline", None, None, None),
+    ("last_timeout", None, None, None),
+)
+
+
 def _build_state_doc():
-    return {
-        "phase": st.session_state.get("phase", "setup"),
-        "participants": st.session_state.get("participants", []),
-        "team_names": st.session_state.get("team_names", {}),
-        "formations": st.session_state.get("formations", {}),
-        "bench_slots": st.session_state.get("bench_slots", DEFAULT_BENCH_SLOTS),
-        "bans": _slim_bans(st.session_state.get("bans", {})),
-        "ban_submissions": st.session_state.get("ban_submissions", {}),
-        "auth_credentials": st.session_state.get("auth_credentials", {}),
-        "auth_tokens": st.session_state.get("auth_tokens", {}),
-        "banned_player_ids": sorted(st.session_state.get("banned_player_ids", set()), key=str),
-        "drafted_players": _slim_squads(st.session_state.get("drafted_players", {})),
-        "draft_sequence": st.session_state.get("draft_sequence", []),
-        "current_pick_index": st.session_state.get("current_pick_index", 0),
-        "draft_history": st.session_state.get("draft_history", []),
-        "removed_participants": st.session_state.get("removed_participants", {}),
-        "pick_deadline": st.session_state.get("pick_deadline"),
-        "last_timeout": st.session_state.get("last_timeout"),
-    }
+    doc = {}
+    for key, default, to_doc, _ in _SHARED_KEYS:
+        value = st.session_state.get(key, default)
+        doc[key] = to_doc(value) if to_doc else value
+    return doc
 
 
-def _import_legacy_json(path):
-    """One-time import of a pre-SQLite draft_state.json next to the DB.
-
-    Returns (version, state dict) when a legacy file was imported, else None.
-    The JSON file is renamed to .imported so this only ever happens once.
-    """
-    legacy = os.path.join(os.path.dirname(path) or ".", LEGACY_STATE_JSON)
-    if not os.path.exists(legacy):
-        return None
-    try:
-        with open(legacy, "r") as f:
-            state = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(state, dict):
-        return None
-    version = write_state_doc(path, state, version=state.get("state_version") or 1)
-    try:
-        os.replace(legacy, f"{legacy}.imported")
-    except OSError:
-        pass
-    state.pop("state_version", None)
-    return version, state
+def _apply_state_doc(state, signature, phase_fallback):
+    """Write a state doc into session state (shared keys + version markers)."""
+    for key, default, _, from_doc in _SHARED_KEYS:
+        if key == "phase":
+            st.session_state.phase = state.get("phase", phase_fallback)
+            continue
+        if key in state:
+            raw = state[key]
+        else:
+            raw = default.copy() if isinstance(default, (dict, list)) else default
+        st.session_state[key] = from_doc(raw) if from_doc else raw
+    st.session_state.state_version = signature
+    st.session_state.state_signature = signature
 
 
 def load_session_state(path=None):
@@ -380,31 +401,11 @@ def load_session_state(path=None):
             st.warning(f"Saved draft state could not be read and was set aside: {e}")
             return False
         if doc is None:
-            doc = _import_legacy_json(path)
-        if doc is None:
             return False
     signature, state = doc
 
     try:
-        st.session_state.phase = state.get("phase", "setup")
-        st.session_state.participants = state.get("participants", [])
-        st.session_state.team_names = state.get("team_names", {})
-        st.session_state.formations = state.get("formations", {})
-        st.session_state.bench_slots = state.get("bench_slots", DEFAULT_BENCH_SLOTS)
-        st.session_state.bans = _rehydrate_bans(state.get("bans", {}))
-        st.session_state.ban_submissions = state.get("ban_submissions", {})
-        st.session_state.auth_credentials = state.get("auth_credentials", {})
-        st.session_state.auth_tokens = state.get("auth_tokens", {})
-        st.session_state.banned_player_ids = normalize_banned_ids(state.get("banned_player_ids", []))
-        st.session_state.drafted_players = _rehydrate_squads(state.get("drafted_players", {}))
-        st.session_state.draft_sequence = state.get("draft_sequence", [])
-        st.session_state.current_pick_index = state.get("current_pick_index", 0)
-        st.session_state.draft_history = state.get("draft_history", [])
-        st.session_state.removed_participants = state.get("removed_participants", {})
-        st.session_state.pick_deadline = state.get("pick_deadline")
-        st.session_state.last_timeout = state.get("last_timeout")
-        st.session_state.state_version = signature
-        st.session_state.state_signature = signature
+        _apply_state_doc(state, signature, phase_fallback="setup")
         return True
     except (AttributeError, TypeError) as e:
         st.warning(f"Saved draft state has an unexpected shape and was ignored: {e}")
@@ -431,25 +432,9 @@ def refresh_shared_state(path=None):
     if doc is None:
         return
     signature, state = doc
-    st.session_state.phase = state.get("phase", st.session_state.get("phase", "setup"))
-    st.session_state.participants = state.get("participants", [])
-    st.session_state.team_names = state.get("team_names", {})
-    st.session_state.formations = state.get("formations", {})
-    st.session_state.bench_slots = state.get("bench_slots", DEFAULT_BENCH_SLOTS)
-    st.session_state.bans = _rehydrate_bans(state.get("bans", {}))
-    st.session_state.ban_submissions = state.get("ban_submissions", {})
-    st.session_state.auth_credentials = state.get("auth_credentials", {})
-    st.session_state.auth_tokens = state.get("auth_tokens", {})
-    st.session_state.banned_player_ids = normalize_banned_ids(state.get("banned_player_ids", []))
-    st.session_state.drafted_players = _rehydrate_squads(state.get("drafted_players", {}))
-    st.session_state.draft_sequence = state.get("draft_sequence", [])
-    st.session_state.current_pick_index = state.get("current_pick_index", 0)
-    st.session_state.draft_history = state.get("draft_history", [])
-    st.session_state.removed_participants = state.get("removed_participants", {})
-    st.session_state.pick_deadline = state.get("pick_deadline")
-    st.session_state.last_timeout = state.get("last_timeout")
-    st.session_state.state_version = signature
-    st.session_state.state_signature = signature
+    _apply_state_doc(
+        state, signature, phase_fallback=st.session_state.get("phase", "setup")
+    )
 
 
 def remove_participant(name):
@@ -502,7 +487,7 @@ def _remove_participant_locked(name):
         overall_pick += 1
     st.session_state.draft_sequence = new_sequence
 
-    save_session_state()
+    save_session_state(expected_version=st.session_state.get("state_version", 0))
 
 
 def _base_pick_order():
@@ -547,7 +532,7 @@ def _restore_participant_locked(name, stash):
         base_order, st.session_state.bench_slots
     )
 
-    save_session_state()
+    save_session_state(expected_version=st.session_state.get("state_version", 0))
 
 
 def init_session_state():

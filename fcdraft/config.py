@@ -2,8 +2,6 @@
 
 CSV_FILE = "FC26_20250921.csv"
 STATE_FILE = "draft_state.db"
-# Pre-SQLite state file; imported into the DB once and renamed on first load.
-LEGACY_STATE_JSON = "draft_state.json"
 # Under ./static so Streamlit's static file serving (enableStaticServing) can
 # expose the faces at ./app/static/image_cache/ instead of inline base64.
 IMAGE_CACHE_DIR = "static/image_cache"
@@ -35,7 +33,7 @@ GENERATED_PASSWORD_LENGTH = 8
 ADMIN_NAME = "__admin__"
 ADMIN_LABEL = "🛡️ Admin"
 
-# How often each browser session polls the state file for remote changes
+# How often each browser session polls the state DB for remote changes
 LIVE_SYNC_INTERVAL = "2s"
 
 # Seconds each participant has to make a pick before losing their turn

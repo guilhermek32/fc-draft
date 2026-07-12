@@ -100,7 +100,7 @@ def _render_ban_picker(picker):
                 if not st.session_state.ban_submissions.get(picker):
                     st.session_state.bans[picker] = [p1_dict, p2_dict, p3_dict]
                     st.session_state.ban_submissions[picker] = True
-                    save_session_state()
+                    save_session_state(expected_version=st.session_state.get("state_version", 0))
             st.rerun()
 
     st.write(" ")
@@ -133,7 +133,7 @@ def _render_random_ban_picker(picker):
                     if not st.session_state.ban_submissions.get(picker):
                         st.session_state.bans[picker] = proposal
                         st.session_state.ban_submissions[picker] = True
-                        save_session_state()
+                        save_session_state(expected_version=st.session_state.get("state_version", 0))
                 del st.session_state[proposal_key]
                 st.rerun()
 
@@ -174,7 +174,7 @@ def _render_reveal_room():
                 st.session_state.banned_player_ids = banned_player_ids
                 st.session_state.phase = "draft"
                 reset_pick_deadline()
-                save_session_state()
+                save_session_state(expected_version=st.session_state.get("state_version", 0))
         st.rerun()
 
 

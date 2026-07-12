@@ -76,28 +76,6 @@ def test_load_corrupt_state(tmp_path, monkeypatch, mock_streamlit_state):
     assert (tmp_path / "draft_state.db.corrupt").exists()
 
 
-def test_legacy_json_migrates_into_db(tmp_path, monkeypatch, mock_streamlit_state):
-    """A pre-SQLite draft_state.json is imported into the DB once and renamed."""
-    from fcdraft.state import peek_state_version
-
-    test_state_file = tmp_path / "draft_state.db"
-    monkeypatch.setattr("fcdraft.state.STATE_FILE", str(test_state_file))
-
-    legacy_file = tmp_path / "draft_state.json"
-    legacy_file.write_text(json.dumps({
-        "state_version": 7, "phase": "ban", "participants": ["Alice"], "bans": {"Alice": []},
-    }))
-
-    assert app.load_session_state()
-    assert mock_streamlit_state["participants"] == ["Alice"]
-    assert mock_streamlit_state["state_version"] == 7
-    assert peek_state_version() == 7
-    # The JSON was renamed so the import never repeats
-    assert not legacy_file.exists()
-    assert (tmp_path / "draft_state.json.imported").exists()
-    assert read_state_doc(str(test_state_file))["phase"] == "ban"
-
-
 def test_drafted_players_saved_as_id_refs(tmp_path, monkeypatch, mock_streamlit_state):
     """Drafted players from the database are stored as id refs and rehydrated on load."""
     df = app.load_data()

@@ -138,7 +138,7 @@ def _render_sidebar(curr_idx, seq):
                     st.session_state.current_pick_index = prev_idx
                     st.success("Successfully undid the last draft pick!")
                     reset_pick_deadline()
-                    save_session_state()
+                    save_session_state(expected_version=st.session_state.get("state_version", 0))
             st.rerun()
 
     if is_admin and curr_idx < len(seq):
@@ -152,7 +152,7 @@ def _render_sidebar(curr_idx, seq):
                         refresh_shared_state()
                         auto_draft_remaining()
                         st.success("Auto-draft complete!")
-                        save_session_state()
+                        save_session_state(expected_version=st.session_state.get("state_version", 0))
                     st.rerun()
 
     with st.expander("🚫 Banned Players List (Ranked by OVR)"):
@@ -234,7 +234,7 @@ def _render_draft_room(curr_idx, seq, picker):
                 if st.session_state.current_pick_index == curr_idx:
                     st.session_state.current_pick_index += 1
                     reset_pick_deadline()
-                    save_session_state()
+                    save_session_state(expected_version=st.session_state.get("state_version", 0))
             st.rerun()
 
         selected_slot = st.selectbox(
@@ -394,13 +394,13 @@ def render():
     st.title("🏟️ Snake Draft Board")
 
     if curr_idx < len(seq):
-        # Old state file (or fresh draft) without a running clock: start one now.
+        # Old saved state (or fresh draft) without a running clock: start one now.
         if st.session_state.get("pick_deadline") is None:
             with shared_state_lock():
                 refresh_shared_state()
                 if st.session_state.get("pick_deadline") is None:
                     reset_pick_deadline()
-                    save_session_state()
+                    save_session_state(expected_version=st.session_state.get("state_version", 0))
         _render_timeout_notice()
         _pick_timer_fragment()
 
@@ -428,5 +428,5 @@ def render():
                 and st.session_state.phase != "completed"
             ):
                 st.session_state.phase = "completed"
-                save_session_state()
+                save_session_state(expected_version=st.session_state.get("state_version", 0))
         st.rerun()

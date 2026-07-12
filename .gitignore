@@ -24,3 +24,7 @@ test_style.py
 pitch_css.txt
 *.txt
 !requirements.txt
+
+# Tool artifacts (generated, not source)
+graphify-out/
+.playwright-mcp/

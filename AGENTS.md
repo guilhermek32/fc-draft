@@ -18,10 +18,10 @@
 
 ## State And Auth
 
-- Multi-browser sync is file-backed through ignored `draft_state.json`, atomic `.tmp` replacement, monotonic `state_version`, and Streamlit polling. State mutations must persist through `save_session_state()`; concurrency-sensitive picks/timeouts must refresh and revalidate disk state before committing.
+- Multi-browser sync is backed by SQLite (`draft_state.db`, WAL mode): one JSON state document in a single row with a monotonic `version` column, DB-level compare-and-swap on writes, and a 2-second Streamlit fragment poll of the version. State mutations must persist through `save_session_state()`; concurrency-sensitive picks/timeouts must refresh and revalidate DB state before committing.
 - Preserve persistence shape: known players and pre-reveal bans save as player-ID references and rehydrate from master CSV; imported unknown players save as sanitized full dicts.
 - `authed_participant`, `is_admin`, current browser `auth_token`, and one-time `generated_passwords` are session-local and must never persist. Shared URL-token map `auth_tokens` intentionally persists so `?draft_slot=` full navigation can restore login.
-- Never commit `draft_state.json` or `image_cache/`; tests assert state file remains gitignored.
+- Never commit `draft_state.db` (nor its `-wal`/`-shm` sidecars) or `image_cache/`; tests assert the state DB remains gitignored.
 
 ## Tests
 

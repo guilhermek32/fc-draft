@@ -10,8 +10,8 @@ class _FakeResponse:
     def __init__(self, payload):
         self._payload = payload
 
-    def read(self):
-        return self._payload
+    def read(self, size=None):
+        return self._payload if size is None else self._payload[:size]
 
     def __enter__(self):
         return self
@@ -55,6 +55,17 @@ def test_error_payload_is_never_cached(image_cache_dir, monkeypatch):
     assert uri == images.TRANSPARENT_PIXEL_URI
     assert not (image_cache_dir / "456.png").exists()
     assert not (image_cache_dir / "notfound.png").exists()
+
+
+def test_oversized_payload_is_rejected(image_cache_dir, monkeypatch):
+    """A payload over MAX_IMAGE_BYTES must be rejected before validation."""
+    huge = _png_bytes() + b"\0" * (images.MAX_IMAGE_BYTES + 1)
+    monkeypatch.setattr(
+        images.urllib.request, "urlopen", lambda req, timeout=None: _FakeResponse(huge)
+    )
+    uri = images.get_cached_player_image_base64("999", "http://example.com/p.png")
+    assert uri == images.TRANSPARENT_PIXEL_URI
+    assert not (image_cache_dir / "999.png").exists()
 
 
 def test_cached_file_skips_network(image_cache_dir, monkeypatch):

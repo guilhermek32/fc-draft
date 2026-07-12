@@ -82,6 +82,8 @@ def _import_previous_draft(imported_df):
     st.session_state.current_pick_index = 0
     st.session_state.draft_history = []
     st.session_state.phase = "completed"
+    # Setup wholesale-replaces the shared state, so this write is intentionally
+    # unconditional (no expected_version) — a refresh here would clobber it.
     save_session_state()
     st.rerun()
 
@@ -217,5 +219,7 @@ def render():
                 st.session_state.banned_player_ids = set()
                 st.session_state.removed_participants = {}
                 st.session_state.phase = "ban"
+                # Starting the draft wholesale-replaces the shared state, so
+                # this write is intentionally unconditional (no expected_version).
                 save_session_state()
                 st.rerun()
